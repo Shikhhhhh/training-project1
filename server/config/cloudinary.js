@@ -1,15 +1,19 @@
 import { v2 as cloudinary } from 'cloudinary';
 import { CloudinaryStorage } from 'multer-storage-cloudinary';
 import multer from 'multer';
+import dotenv from 'dotenv';
 
-// Configure Cloudinary
+dotenv.config();
+// ✅ TEMPORARY: Hardcode your actual credentials
 cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME ,
+  api_key: process.env.CLOUDINARY_API_KEY ,
+  api_secret: process.env.CLOUDINARY_API_SECRET  // ← PUT YOUR REAL API SECRET HERE!
 });
 
-// Storage for resumes (PDFs, DOCX)
+console.log('✅ Cloudinary configured with hardcoded values');
+
+// Storage for resumes
 const resumeStorage = new CloudinaryStorage({
   cloudinary: cloudinary,
   params: {
@@ -50,7 +54,7 @@ const verificationStorage = new CloudinaryStorage({
   },
 });
 
-// File filter for resumes
+// File filters
 const resumeFileFilter = (req, file, cb) => {
   const allowedTypes = [
     'application/pdf',
@@ -65,7 +69,6 @@ const resumeFileFilter = (req, file, cb) => {
   }
 };
 
-// File filter for images
 const imageFileFilter = (req, file, cb) => {
   const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
   
@@ -78,9 +81,9 @@ const imageFileFilter = (req, file, cb) => {
 
 // File size limits
 const fileSizeLimits = {
-  resume: 5 * 1024 * 1024, // 5MB
-  image: 2 * 1024 * 1024,  // 2MB
-  document: 10 * 1024 * 1024, // 10MB
+  resume: 5 * 1024 * 1024,
+  image: 2 * 1024 * 1024,
+  document: 10 * 1024 * 1024,
 };
 
 // Upload middlewares
@@ -101,7 +104,7 @@ export const uploadVerificationDoc = multer({
   limits: { fileSize: fileSizeLimits.document },
 });
 
-// Helper function to delete file from Cloudinary
+// Helper function
 export const deleteFromCloudinary = async (publicId) => {
   try {
     await cloudinary.uploader.destroy(publicId);

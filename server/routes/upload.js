@@ -1,134 +1,147 @@
 import express from 'express';
 import { protect } from '../middleware/auth.js';
-import { 
-  uploadResume, 
-  uploadProfilePicture, 
-  uploadVerificationDoc 
-} from '../config/cloudinary.js';
+import { uploadProfilePicture, uploadResume, uploadVerificationDoc } from '../config/cloudinary.js';
 import { User, StudentProfile } from '../models/index.js';
 
 const router = express.Router();
 
-// Upload resume
-router.post('/resume', protect, uploadResume.single('resume'), async (req, res) => {
-  try {
-    if (!req.file) {
-      return res.status(400).json({ 
+// Upload profile picture
+router.post('/profile-picture', protect, (req, res, next) => {
+  console.log('📸 Profile picture route hit');
+  console.log('User from token:', req.user);
+  
+  uploadProfilePicture.single('profilePicture')(req, res, async (err) => {
+    if (err) {
+      console.error('❌ Multer error:', err);
+      return res.status(400).json({
         success: false,
-        error: 'No file uploaded' 
+        error: err.message,
       });
     }
 
-    const resumeUrl = req.file.path;
-    
-    // Update user's student profile with resume URL
-    await StudentProfile.findOneAndUpdate(
-      { user: req.user.userId },
-      { resume: resumeUrl },
-      { new: true, upsert: false }
-    );
+    console.log('File from multer:', req.file);
 
-    res.json({
-      success: true,
-      message: 'Resume uploaded successfully',
-      file: {
-        url: resumeUrl,
-        filename: req.file.filename,
-        size: req.file.size,
-      },
-    });
-  } catch (error) {
-    res.status(500).json({ 
-      success: false,
-      error: error.message 
-    });
-  }
+    if (!req.file) {
+      console.error('❌ No file received');
+      return res.status(400).json({
+        success: false,
+        error: 'No file uploaded. Make sure field name is "profilePicture"',
+      });
+    }
+
+    try {
+      const profilePictureUrl = req.file.path;
+      console.log('✅ File uploaded to Cloudinary:', profilePictureUrl);
+
+      await User.findByIdAndUpdate(
+        req.user.userId,
+        { profilePicture: profilePictureUrl },
+        { new: true }
+      );
+
+      console.log('✅ User profile picture updated in database');
+
+      res.json({
+        success: true,
+        message: 'Profile picture uploaded successfully',
+        file: {
+          url: profilePictureUrl,
+          filename: req.file.filename,
+          size: req.file.size,
+        },
+      });
+    } catch (error) {
+      console.error('❌ Upload processing error:', error);
+      res.status(500).json({
+        success: false,
+        error: error.message,
+      });
+    }
+  });
 });
 
-// Upload profile picture
-router.post('/profile-picture', protect, uploadProfilePicture.single('profilePicture'), async (req, res) => {
-  try {
-    if (!req.file) {
-      return res.status(400).json({ 
+// Upload resume
+router.post('/resume', protect, (req, res, next) => {
+  uploadResume.single('resume')(req, res, async (err) => {
+    if (err) {
+      console.error('Resume upload error:', err);
+      return res.status(400).json({
         success: false,
-        error: 'No file uploaded' 
+        error: err.message,
       });
     }
-    console.log(req.file);
-    const profilePictureUrl = req.file.path;
-    
-    // Update user's profile picture
-    await User.findByIdAndUpdate(
-      req.user.userId,
-      { profilePicture: profilePictureUrl },
-      { new: true }
-    );
 
-    res.json({
-      success: true,
-      message: 'Profile picture uploaded successfully',
-      file: {
-        url: profilePictureUrl,
-        filename: req.file.filename,
-        size: req.file.size,
-      },
-    });
-  } catch (error) {
-    res.status(500).json({ 
-      success: false,
-      error: error.message 
-    });
-  }
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        error: 'No file uploaded',
+      });
+    }
+
+    try {
+      const resumeUrl = req.file.path;
+      await StudentProfile.findOneAndUpdate(
+        { user: req.user.userId },
+        { resume: resumeUrl },
+        { new: true, upsert: false }
+      );
+
+      res.json({
+        success: true,
+        message: 'Resume uploaded successfully',
+        file: {
+          url: resumeUrl,
+          filename: req.file.filename,
+          size: req.file.size,
+        },
+      });
+    } catch (error) {
+      console.error('Resume processing error:', error);
+      res.status(500).json({
+        success: false,
+        error: error.message,
+      });
+    }
+  });
 });
 
 // Upload verification document
-router.post('/verification', protect, uploadVerificationDoc.single('document'), async (req, res) => {
-  try {
-    if (!req.file) {
-      return res.status(400).json({ 
+router.post('/verification', protect, (req, res, next) => {
+  uploadVerificationDoc.single('document')(req, res, async (err) => {
+    if (err) {
+      console.error('Verification doc upload error:', err);
+      return res.status(400).json({
         success: false,
-        error: 'No file uploaded' 
+        error: err.message,
       });
     }
 
-    const documentUrl = req.file.path;
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        error: 'No file uploaded',
+      });
+    }
 
-    res.json({
-      success: true,
-      message: 'Document uploaded successfully',
-      file: {
-        url: documentUrl,
-        filename: req.file.filename,
-        size: req.file.size,
-        format: req.file.format,
-      },
-    });
-  } catch (error) {
-    res.status(500).json({ 
-      success: false,
-      error: error.message 
-    });
-  }
-});
-
-// Error handler for multer errors
-router.use((error, req, res, next) => {
-  if (error.code === 'LIMIT_FILE_SIZE') {
-    return res.status(400).json({
-      success: false,
-      error: 'File size too large. Maximum size is 5MB for resumes, 2MB for images.',
-    });
-  }
-  
-  if (error.message) {
-    return res.status(400).json({
-      success: false,
-      error: error.message,
-    });
-  }
-  
-  next(error);
+    try {
+      const documentUrl = req.file.path;
+      res.json({
+        success: true,
+        message: 'Document uploaded successfully',
+        file: {
+          url: documentUrl,
+          filename: req.file.filename,
+          size: req.file.size,
+        },
+      });
+    } catch (error) {
+      console.error('Document processing error:', error);
+      res.status(500).json({
+        success: false,
+        error: error.message,
+      });
+    }
+  });
 });
 
 export default router;
-
