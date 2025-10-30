@@ -30,7 +30,7 @@ router.post('/profile', protect, authorize('student'), async (req, res) => {
     };
 
     const profile = await StudentProfile.create(profileData);
-    await profile.populate('user', 'name email department');
+    await profile.populate('user', 'name email department profilePicture');
 
     res.status(201).json({
       success: true,
@@ -53,7 +53,7 @@ router.post('/profile', protect, authorize('student'), async (req, res) => {
 router.get('/profile/me', protect, authorize('student'), async (req, res) => {
   try {
     const profile = await StudentProfile.findOne({ user: req.user.userId })
-      .populate('user', 'name email department');
+      .populate('user', 'name email department profilePicture');
 
     if (!profile) {
       return res.status(404).json({ 
@@ -82,7 +82,7 @@ router.put('/profile', protect, authorize('student'), async (req, res) => {
       { user: req.user.userId },
       { $set: req.body },
       { new: true, runValidators: true }
-    ).populate('user', 'name email department');
+    ).populate('user', 'name email department profilePicture');
 
     if (!profile) {
       return res.status(404).json({ 
@@ -192,7 +192,7 @@ router.get('/profiles', protect, authorize('recruiter', 'admin', 'faculty'), asy
     }
 
     const profiles = await StudentProfile.find(filter)
-      .populate('user', 'name email department')
+      .populate('user', 'name email department profilePicture')
       .limit(limit * 1)
       .skip((page - 1) * limit)
       .sort(sort);
@@ -222,7 +222,7 @@ router.get('/profiles', protect, authorize('recruiter', 'admin', 'faculty'), asy
 router.get('/profile/:id', protect, authorize('recruiter', 'admin', 'faculty'), async (req, res) => {
   try {
     const profile = await StudentProfile.findById(req.params.id)
-      .populate('user', 'name email department');
+      .populate('user', 'name email department profilePicture');
 
     if (!profile) {
       return res.status(404).json({ 

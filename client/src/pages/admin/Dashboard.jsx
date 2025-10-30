@@ -1,79 +1,140 @@
-import { Layout, Card, Statistic, Row, Col, Button } from 'antd';
-import { UserOutlined, FileTextOutlined, CheckCircleOutlined, LogoutOutlined } from '@ant-design/icons';
-import { clearAuth } from '../../services/auth';
-import { useNavigate } from 'react-router-dom';
-
-// ... rest of the component
-
+import { useState, useEffect } from 'react';
+import { Layout, Avatar, Badge } from 'antd';
+import { UserOutlined, BellOutlined, MenuOutlined } from '@ant-design/icons';
+import ProfileView from '../../components/student/ProfileView';
+import ProfileForm from '../../components/student/ProfileForm';
 
 const { Header, Content } = Layout;
 
-export default function AdminDashboard() {
-  const navigate = useNavigate();
+export default function Dashboard() {
+  const [user, setUser] = useState(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0); // Add this
 
-  const handleLogout = () => {
-    clearAuth();
-    navigate('/login');
+  // Load user data
+  const loadUser = () => {
+    const userData = JSON.parse(localStorage.getItem('user'));
+    console.log('📊 Loading user data:', userData); // Debug log
+    setUser(userData);
   };
 
+  useEffect(() => {
+    loadUser();
+
+    // Listen for profile picture updates
+    const handleProfileUpdate = () => {
+      console.log('🔄 Profile picture updated event received');
+      loadUser();
+      setRefreshKey(prev => prev + 1); // Force re-render
+    };
+
+    window.addEventListener('profilePictureUpdated', handleProfileUpdate);
+
+    // Also listen to storage events (if updated in another tab)
+    window.addEventListener('storage', handleProfileUpdate);
+
+    return () => {
+      window.removeEventListener('profilePictureUpdated', handleProfileUpdate);
+      window.removeEventListener('storage', handleProfileUpdate);
+    };
+  }, []);
+
+  const handleProfileSuccess = () => {
+    setIsEditing(false);
+    loadUser();
+    setRefreshKey(prev => prev + 1);
+  };
+
+  
+
   return (
-    <Layout className="min-h-screen">
-      <Header className="bg-white shadow-sm">
-        <div className="flex justify-between items-center">
-          <h1 className="text-2xl font-bold text-gray-800">Admin Dashboard</h1>
-          <button
-            onClick={handleLogout}
-            className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition"
-          >
-            Logout
-          </button>
+    <Layout className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <Header className="bg-white shadow-sm px-6 flex items-center justify-between" style={{ position: 'sticky', top: 0, zIndex: 1 }}>
+        <MenuOutlined className="text-xl cursor-pointer" />
+        
+        <div className="flex items-center gap-6">
+          <Badge count={0} showZero>
+            <BellOutlined className="text-xl cursor-pointer" />
+          </Badge>
+
+          <div className="flex items-center gap-3 cursor-pointer">
+            <div className="text-right">
+              <p className="text-sm font-semibold text-gray-900">
+                {user?.name || 'Student'}
+              </p>
+              <p className="text-xs text-gray-500">
+                {user?.email || 'email@example.com'}
+              </p>
+            </div>
+            
+            {/* Dynamic Profile Picture with key to force refresh */}
+            <Avatar 
+              key={`header-avatar-${refreshKey}`}
+              size={48}
+              src={user?.profilePicture}
+              icon={!user?.profilePicture && <UserOutlined />}
+              className="bg-purple-500 shadow-md"
+            />
+          </div>
         </div>
       </Header>
 
-      <Content className="p-6 bg-gray-50">
-        <div className="mb-6">
-          <h2 className="text-3xl font-bold text-gray-800 mb-2">Welcome, Admin! 👋</h2>
-          <p className="text-gray-600">Manage your internship portal</p>
-        </div>
-
-        <Row gutter={[16, 16]}>
-          <Col xs={24} sm={12} lg={8}>
-            <Card className="rounded-xl shadow-md hover:shadow-lg transition">
-              <Statistic
-                title="Total Students"
-                value={0}
-                prefix={<UserOutlined />}
-                valueStyle={{ color: '#3f8600' }}
+      {/* Content */}
+      <Content className="p-6">
+        <div className="max-w-6xl mx-auto bg-white rounded-lg shadow p-6">
+          
+          {/* Profile Header with Dynamic Avatar */}
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-4">
+              {/* Left Side Avatar - Dynamic with key */}
+              <Avatar 
+                key={`profile-avatar-${refreshKey}`}
+                size={64}
+                src={user?.profilePicture}
+                icon={!user?.profilePicture && <UserOutlined />}
+                className="bg-purple-500 shadow-lg"
               />
-            </Card>
-          </Col>
+              
+              <div>
+                <h1 className="text-3xl font-bold text-gray-900">Student</h1>
+                <div className="mt-2 inline-block bg-yellow-100 text-yellow-800 px-3 py-1 rounded text-sm">
+                  60% Complete
+                </div>
+              </div>
+            </div>
 
-          <Col xs={24} sm={12} lg={8}>
-            <Card className="rounded-xl shadow-md hover:shadow-lg transition">
-              <Statistic
-                title="Total Applications"
-                value={0}
-                prefix={<FileTextOutlined />}
-                valueStyle={{ color: '#1890ff' }}
-              />
-            </Card>
-          </Col>
+            <div className="flex gap-3">
+              <button 
+                onClick={() => setIsEditing(true)}
+                className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition-colors"
+              >
+                ✏️ Edit
+              </button>
+              <button className="px-4 py-2 border border-red-500 text-red-500 rounded-md hover:bg-red-50 transition-colors">
+                🗑️ Delete
+              </button>
+            </div>
+          </div>
 
-          <Col xs={24} sm={12} lg={8}>
-            <Card className="rounded-xl shadow-md hover:shadow-lg transition">
-              <Statistic
-                title="Verified Profiles"
-                value={0}
-                prefix={<CheckCircleOutlined />}
-                valueStyle={{ color: '#cf1322' }}
-              />
-            </Card>
-          </Col>
-        </Row>
-
-        <div className="mt-8 bg-white rounded-xl p-8 shadow-md">
-          <h3 className="text-xl font-semibold mb-4">Quick Actions</h3>
-          <p className="text-gray-600">Admin features coming soon...</p>
+          {/* Profile Content */}
+          {isEditing ? (
+            <ProfileForm 
+              profile={user} 
+              onSuccess={handleProfileSuccess}
+              onCancel={() => setIsEditing(false)}
+            />
+          ) : (
+            <ProfileView 
+              key={`profile-view-${refreshKey}`}
+              profile={user} 
+              onEdit={() => setIsEditing(true)}
+              onRefresh={() => {
+                loadUser();
+                setRefreshKey(prev => prev + 1);
+              }}
+            />
+          )}
         </div>
       </Content>
     </Layout>

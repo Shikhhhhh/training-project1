@@ -63,6 +63,16 @@ export const studentAPI = {
   },
 };
 
+// ✅ ADD THIS NEW SECTION
+export const usersAPI = {
+  getMe: async () => {
+    const response = await fetch(`${API_URL}/users/me`, {
+      headers: getHeaders(),
+    });
+    return handleResponse(response);
+  },
+};
+
 export const uploadAPI = {
   uploadProfilePicture: async (file) => {
     const token = getToken();

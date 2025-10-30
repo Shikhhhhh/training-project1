@@ -1,4 +1,4 @@
-import { Card, Descriptions, Tag, Button, Upload, message, Modal } from 'antd';
+import { Card, Descriptions, Tag, Button, Upload, message, Modal, Avatar } from 'antd';
 import {
   EditOutlined,
   UploadOutlined,
@@ -7,14 +7,21 @@ import {
   LinkedinOutlined,
   GlobalOutlined,
   DeleteOutlined,
+  UserOutlined,
 } from '@ant-design/icons';
 import { uploadAPI, studentAPI } from '../../services/api';
-import { useState } from 'react';
-
-// ... rest of the component
+import { useState, useEffect } from 'react';
 
 export default function ProfileView({ profile, onEdit, onRefresh }) {
   const [uploading, setUploading] = useState(false);
+  const [cacheKey, setCacheKey] = useState(Date.now());
+
+  // Update cache key when profile picture changes
+  useEffect(() => {
+    if (profile?.user?.profilePicture) {
+      setCacheKey(Date.now());
+    }
+  }, [profile?.user?.profilePicture]);
 
   if (!profile) {
     return (
@@ -34,32 +41,66 @@ export default function ProfileView({ profile, onEdit, onRefresh }) {
   }
 
   const handleProfilePictureUpload = async (file) => {
+    const isImage = file.type.startsWith('image/');
+    if (!isImage) {
+      message.error('You can only upload image files!');
+      return false;
+    }
+
+    const isLt5M = file.size / 1024 / 1024 < 5;
+    if (!isLt5M) {
+      message.error('Image must be smaller than 5MB!');
+      return false;
+    }
+
     setUploading(true);
+
     try {
-      const data = await uploadAPI.uploadProfilePicture(file);
-      if (data.success) {
-        message.success('Profile picture uploaded!');
-        onRefresh();
+      const res = await uploadAPI.uploadProfilePicture(file);
+
+      if (res.success) {
+        message.success('Profile picture uploaded successfully!');
+        
+        // Refresh profile data from server
+        if (onRefresh) {
+          await onRefresh();
+        }
       }
     } catch (error) {
-      message.error(error.message);
+      console.error('Upload error:', error);
+      message.error(error.message || 'Failed to upload profile picture');
     } finally {
       setUploading(false);
     }
+
     return false;
   };
 
   const handleResumeUpload = async (file) => {
+    const isPDF = file.type === 'application/pdf';
+    const isDoc = file.type === 'application/msword' || file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+    
+    if (!isPDF && !isDoc) {
+      message.error('You can only upload PDF or Word documents!');
+      return false;
+    }
+
+    const isLt5M = file.size / 1024 / 1024 < 5;
+    if (!isLt5M) {
+      message.error('File must be smaller than 5MB!');
+      return false;
+    }
+
     setUploading(true);
     try {
       const data = await uploadAPI.uploadResume(file);
       if (data.success) {
         await studentAPI.updateProfile({ resumeUrl: data.file.url });
-        message.success('Resume uploaded!');
+        message.success('Resume uploaded successfully!');
         onRefresh();
       }
     } catch (error) {
-      message.error(error.message);
+      message.error(error.message || 'Resume upload failed');
     } finally {
       setUploading(false);
     }
@@ -78,52 +119,84 @@ export default function ProfileView({ profile, onEdit, onRefresh }) {
           message.success('Profile deleted successfully');
           onRefresh();
         } catch (error) {
-          message.error(error.message);
+          message.error(error.message || 'Delete failed');
         }
       },
     });
   };
 
+  // ✅ FIX: Read from profile.user (not profile.userId) and add cache buster
+  const profilePicUrl = profile?.user?.profilePicture 
+    ? `${profile.user.profilePicture}?v=${cacheKey}`
+    : null;
+
+  console.log('🖼️ Avatar URL:', profilePicUrl);
+  console.log('📦 Profile user:', profile?.user);
+
   return (
     <div className="space-y-6">
-      {/* Header Card */}
+      {/* Header Card with Profile Picture */}
       <Card className="rounded-2xl shadow-lg border-0">
         <div className="flex flex-col md:flex-row gap-6">
+          
+          {/* Profile Picture Section */}
           <div className="flex flex-col items-center">
-            <div className="relative">
-              <img
-                src={profile.userId?.profilePicture || 'https://via.placeholder.com/150'}
-                alt="Profile"
-                className="w-32 h-32 rounded-full object-cover border-4 border-blue-500"
-              />
-              <Upload
-                beforeUpload={handleProfilePictureUpload}
-                showUploadList={false}
-                accept="image/*"
-              >
-                <Button
-                  icon={<UploadOutlined />}
-                  size="small"
-                  loading={uploading}
-                  className="absolute bottom-0 right-0 rounded-full"
+            <div className="relative group">
+              {/* ✅ FIX: Conditional rendering - only use Avatar with src when URL exists */}
+              {profilePicUrl ? (
+                <Avatar
+                  size={128}
+                  src={profilePicUrl}
+                  className="border-4 border-purple-500 shadow-lg"
+                />
+              ) : (
+                <Avatar
+                  size={128}
+                  icon={<UserOutlined />}
+                  className="border-4 border-purple-500 shadow-lg bg-gray-200"
+                />
+              )}
+              
+              {/* Upload Button Overlay */}
+              <div className="absolute bottom-0 right-0">
+                <Upload
+                  beforeUpload={handleProfilePictureUpload}
+                  showUploadList={false}
+                  accept="image/*"
+                  maxCount={1}
                 >
-                  Upload
-                </Button>
-              </Upload>
+                  <Button
+                    icon={<UploadOutlined />}
+                    size="small"
+                    loading={uploading}
+                    className="rounded-full bg-purple-600 text-white border-0 hover:bg-purple-700"
+                    type="primary"
+                  >
+                    {profilePicUrl ? 'Change' : 'Upload'}
+                  </Button>
+                </Upload>
+              </div>
             </div>
+            <p className="text-xs text-gray-500 mt-2">Max 5MB</p>
           </div>
 
+          {/* Profile Info */}
           <div className="flex-1">
             <div className="flex justify-between items-start mb-4">
               <div>
                 <h2 className="text-3xl font-bold text-gray-800 mb-2">
-                  {profile.userId?.name || 'Student'}
+                  {profile.user?.name || 'Student'}
                 </h2>
-                <p className="text-gray-600">{profile.userId?.email}</p>
-                <p className="text-gray-500 text-sm">{profile.userId?.department}</p>
+                <p className="text-gray-600">{profile.user?.email}</p>
+                <p className="text-gray-500 text-sm">{profile.user?.department}</p>
               </div>
               <div className="flex gap-2">
-                <Button type="primary" icon={<EditOutlined />} onClick={onEdit}>
+                <Button 
+                  type="primary" 
+                  icon={<EditOutlined />} 
+                  onClick={onEdit}
+                  className="bg-purple-600 hover:bg-purple-700 border-0"
+                >
                   Edit
                 </Button>
                 <Button danger icon={<DeleteOutlined />} onClick={handleDeleteProfile}>
@@ -143,7 +216,7 @@ export default function ProfileView({ profile, onEdit, onRefresh }) {
       </Card>
 
       {/* Details Card */}
-      <Card title="Profile Information" className="rounded-2xl shadow-lg border-0">
+      <Card title="📋 Profile Information" className="rounded-2xl shadow-lg border-0">
         <Descriptions bordered column={2}>
           <Descriptions.Item label="Program">{profile.program || 'N/A'}</Descriptions.Item>
           <Descriptions.Item label="Graduation Year">{profile.graduationYear || 'N/A'}</Descriptions.Item>
@@ -155,7 +228,7 @@ export default function ProfileView({ profile, onEdit, onRefresh }) {
       </Card>
 
       {/* Skills */}
-      <Card title="Skills" className="rounded-2xl shadow-lg border-0">
+      <Card title="💡 Skills" className="rounded-2xl shadow-lg border-0">
         <div className="flex flex-wrap gap-2">
           {profile.skills && profile.skills.length > 0 ? (
             profile.skills.map((skill, idx) => (
@@ -170,7 +243,7 @@ export default function ProfileView({ profile, onEdit, onRefresh }) {
       </Card>
 
       {/* Links */}
-      <Card title="Links" className="rounded-2xl shadow-lg border-0">
+      <Card title="🔗 Social Links" className="rounded-2xl shadow-lg border-0">
         <div className="space-y-3">
           {profile.githubUrl && (
             <a
@@ -212,7 +285,7 @@ export default function ProfileView({ profile, onEdit, onRefresh }) {
       </Card>
 
       {/* Resume */}
-      <Card title="Resume" className="rounded-2xl shadow-lg border-0">
+      <Card title="📄 Resume" className="rounded-2xl shadow-lg border-0">
         {profile.resumeUrl ? (
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-2">
@@ -242,4 +315,3 @@ export default function ProfileView({ profile, onEdit, onRefresh }) {
     </div>
   );
 }
-    

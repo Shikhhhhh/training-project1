@@ -11,3 +11,30 @@
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
 }
+
+/* Force placeholder to be visible in dark inputs */
+.ant-input-password input::placeholder {
+  color: #8E8E8E !important;
+  opacity: 1 !important;
+}
+
+.ant-input::placeholder {
+  color: #8E8E8E !important;
+  opacity: 1 !important;
+}
+
+/* Password input styling */
+.ant-input-password input {
+  background-color: #121212 !important;
+  color: #ffffff !important;
+}
+
+.ant-input-affix-wrapper {
+  background-color: #121212 !important;
+  border: 1px solid #262626 !important;
+}
+
+.ant-input-affix-wrapper input {
+  background-color: transparent !important;
+  color: #ffffff !important;
+}
