@@ -1,142 +1,205 @@
+// client/src/pages/admin/Dashboard.jsx
 import { useState, useEffect } from 'react';
-import { Layout, Avatar, Badge } from 'antd';
-import { UserOutlined, BellOutlined, MenuOutlined } from '@ant-design/icons';
-import ProfileView from '../../components/student/ProfileView';
-import ProfileForm from '../../components/student/ProfileForm';
+import { Layout, Menu, Avatar, Dropdown, Button, Row, Col, Card, Spin } from 'antd';
+import {
+  DashboardOutlined,
+  TeamOutlined,
+  FileTextOutlined,
+  SettingOutlined,
+  LogoutOutlined,
+  UserOutlined,
+  CheckCircleOutlined,
+  BookOutlined,
+} from '@ant-design/icons';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { adminAPI } from '../../services/api';
+import { clearAuth, getUser } from '../../services/auth';
+import StatsCard from '../../components/admin/StatsCard';
 
-const { Header, Content } = Layout;
+const { Header, Sider, Content } = Layout;
 
-export default function Dashboard() {
-  const [user, setUser] = useState(null);
-  const [isEditing, setIsEditing] = useState(false);
-  const [refreshKey, setRefreshKey] = useState(0); // Add this
-
-  // Load user data
-  const loadUser = () => {
-    const userData = JSON.parse(localStorage.getItem('user'));
-    console.log('📊 Loading user data:', userData); // Debug log
-    setUser(userData);
-  };
+export default function AdminDashboard() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const user = getUser();
+  const [collapsed, setCollapsed] = useState(false);
+  const [stats, setStats] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    loadUser();
-
-    // Listen for profile picture updates
-    const handleProfileUpdate = () => {
-      console.log('🔄 Profile picture updated event received');
-      loadUser();
-      setRefreshKey(prev => prev + 1); // Force re-render
-    };
-
-    window.addEventListener('profilePictureUpdated', handleProfileUpdate);
-
-    // Also listen to storage events (if updated in another tab)
-    window.addEventListener('storage', handleProfileUpdate);
-
-    return () => {
-      window.removeEventListener('profilePictureUpdated', handleProfileUpdate);
-      window.removeEventListener('storage', handleProfileUpdate);
-    };
+    fetchStats();
   }, []);
 
-  const handleProfileSuccess = () => {
-    setIsEditing(false);
-    loadUser();
-    setRefreshKey(prev => prev + 1);
+  const fetchStats = async () => {
+    try {
+      const data = await adminAPI.getStats();
+      if (data.success) {
+        setStats(data.stats);
+      }
+    } catch (error) {
+      console.error('Failed to fetch stats:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  
+  const handleLogout = () => {
+    clearAuth();
+    navigate('/login');
+  };
+
+  const menuItems = [
+    {
+      key: '/admin/dashboard',
+      icon: <DashboardOutlined />,
+      label: 'Dashboard',
+    },
+    {
+      key: '/admin/students',
+      icon: <TeamOutlined />,
+      label: 'Students',
+    },
+    {
+      key: '/admin/jobs',
+      icon: <FileTextOutlined />,
+      label: 'Jobs',
+    },
+    {
+      key: '/admin/settings',
+      icon: <SettingOutlined />,
+      label: 'Settings',
+    },
+  ];
+
+  const userMenu = {
+    items: [
+      {
+        key: 'profile',
+        label: 'Profile',
+        icon: <UserOutlined />,
+      },
+      {
+        key: 'logout',
+        label: 'Logout',
+        icon: <LogoutOutlined />,
+        danger: true,
+        onClick: handleLogout,
+      },
+    ],
+  };
 
   return (
-    <Layout className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <Header className="bg-white shadow-sm px-6 flex items-center justify-between" style={{ position: 'sticky', top: 0, zIndex: 1 }}>
-        <MenuOutlined className="text-xl cursor-pointer" />
-        
-        <div className="flex items-center gap-6">
-          <Badge count={0} showZero>
-            <BellOutlined className="text-xl cursor-pointer" />
-          </Badge>
-
-          <div className="flex items-center gap-3 cursor-pointer">
-            <div className="text-right">
-              <p className="text-sm font-semibold text-gray-900">
-                {user?.name || 'Student'}
-              </p>
-              <p className="text-xs text-gray-500">
-                {user?.email || 'email@example.com'}
-              </p>
-            </div>
-            
-            {/* Dynamic Profile Picture with key to force refresh */}
-            <Avatar 
-              key={`header-avatar-${refreshKey}`}
-              size={48}
-              src={user?.profilePicture}
-              icon={!user?.profilePicture && <UserOutlined />}
-              className="bg-purple-500 shadow-md"
-            />
-          </div>
+    <Layout className="min-h-screen">
+      {/* Sidebar */}
+      <Sider
+        collapsible
+        collapsed={collapsed}
+        onCollapse={setCollapsed}
+        className="bg-gradient-to-b from-purple-700 to-purple-900"
+        width={250}
+      >
+        <div className="p-6 text-center">
+          <h1 className="text-white text-2xl font-bold">
+            {collapsed ? 'IP' : 'Internship Portal'}
+          </h1>
         </div>
-      </Header>
+        <Menu
+          theme="dark"
+          mode="inline"
+          selectedKeys={[location.pathname]}
+          items={menuItems}
+          onClick={({ key }) => navigate(key)}
+          className="bg-transparent border-0"
+        />
+      </Sider>
 
-      {/* Content */}
-      <Content className="p-6">
-        <div className="max-w-6xl mx-auto bg-white rounded-lg shadow p-6">
-          
-          {/* Profile Header with Dynamic Avatar */}
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-4">
-              {/* Left Side Avatar - Dynamic with key */}
-              <Avatar 
-                key={`profile-avatar-${refreshKey}`}
-                size={64}
-                src={user?.profilePicture}
-                icon={!user?.profilePicture && <UserOutlined />}
-                className="bg-purple-500 shadow-lg"
-              />
-              
-              <div>
-                <h1 className="text-3xl font-bold text-gray-900">Student</h1>
-                <div className="mt-2 inline-block bg-yellow-100 text-yellow-800 px-3 py-1 rounded text-sm">
-                  60% Complete
-                </div>
-              </div>
+      <Layout>
+        {/* Header */}
+        <Header className="bg-white shadow-md px-6 flex justify-between items-center">
+          <h2 className="text-xl font-semibold text-gray-800">Admin Dashboard</h2>
+          <Dropdown menu={userMenu} placement="bottomRight">
+            <div className="flex items-center gap-3 cursor-pointer">
+              <Avatar icon={<UserOutlined />} className="bg-purple-600" />
+              <span className="text-gray-700">{user?.name || 'Admin'}</span>
             </div>
+          </Dropdown>
+        </Header>
 
-            <div className="flex gap-3">
-              <button 
-                onClick={() => setIsEditing(true)}
-                className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition-colors"
-              >
-                ✏️ Edit
-              </button>
-              <button className="px-4 py-2 border border-red-500 text-red-500 rounded-md hover:bg-red-50 transition-colors">
-                🗑️ Delete
-              </button>
+        {/* Content */}
+        <Content className="p-6 bg-gray-50">
+          {loading ? (
+            <div className="flex justify-center items-center h-64">
+              <Spin size="large" />
             </div>
-          </div>
-
-          {/* Profile Content */}
-          {isEditing ? (
-            <ProfileForm 
-              profile={user} 
-              onSuccess={handleProfileSuccess}
-              onCancel={() => setIsEditing(false)}
-            />
           ) : (
-            <ProfileView 
-              key={`profile-view-${refreshKey}`}
-              profile={user} 
-              onEdit={() => setIsEditing(true)}
-              onRefresh={() => {
-                loadUser();
-                setRefreshKey(prev => prev + 1);
-              }}
-            />
+            <>
+              {/* Stats Cards */}
+              <Row gutter={[16, 16]} className="mb-6">
+                <Col xs={24} sm={12} lg={6}>
+                  <StatsCard
+                    title="Total Students"
+                    value={stats?.totalStudents || 0}
+                    icon={<TeamOutlined />}
+                    color="blue"
+                  />
+                </Col>
+                <Col xs={24} sm={12} lg={6}>
+                  <StatsCard
+                    title="Verified Students"
+                    value={stats?.verifiedStudents || 0}
+                    icon={<CheckCircleOutlined />}
+                    color="green"
+                  />
+                </Col>
+                <Col xs={24} sm={12} lg={6}>
+                  <StatsCard
+                    title="Average CGPA"
+                    value={stats?.avgCgpa || '0.00'}
+                    icon={<BookOutlined />}
+                    color="purple"
+                  />
+                </Col>
+                <Col xs={24} sm={12} lg={6}>
+                  <StatsCard
+                    title="Active Jobs"
+                    value="12"
+                    icon={<FileTextOutlined />}
+                    color="orange"
+                  />
+                </Col>
+              </Row>
+
+              {/* Charts */}
+              <Row gutter={[16, 16]}>
+                <Col xs={24} lg={12}>
+                  <Card title="Students by Graduation Year" className="rounded-xl shadow-lg">
+                    <div className="space-y-2">
+                      {stats?.studentsByYear?.map((item) => (
+                        <div key={item._id} className="flex justify-between items-center">
+                          <span className="text-gray-700">Year {item._id}</span>
+                          <span className="font-semibold text-purple-600">{item.count}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </Card>
+                </Col>
+                <Col xs={24} lg={12}>
+                  <Card title="Top Branches" className="rounded-xl shadow-lg">
+                    <div className="space-y-2">
+                      {stats?.studentsByBranch?.slice(0, 5).map((item) => (
+                        <div key={item._id} className="flex justify-between items-center">
+                          <span className="text-gray-700">{item._id}</span>
+                          <span className="font-semibold text-blue-600">{item.count}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </Card>
+                </Col>
+              </Row>
+            </>
           )}
-        </div>
-      </Content>
+        </Content>
+      </Layout>
     </Layout>
   );
 }

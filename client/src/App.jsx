@@ -5,6 +5,40 @@ import StudentDashboard from './pages/student/Dashboard.jsx';
 import AdminDashboard from './pages/admin/Dashboard.jsx';
 import ProtectedRoute from './components/common/ProtectedRoute.jsx';
 import { ROUTES, ROLES } from './utils/constants.js';
+import AdminJobs from './pages/admin/Jobs.jsx';
+import AdminSettings from './pages/admin/Settings.jsx';
+import AdminStudents from './pages/admin/Students.jsx';
+import { getUser } from './services/auth.js';
+
+// Protected Route wrapper
+// function ProtectedRoute({ children, allowedRoles }) {
+//   const token = getToken();
+//   const user = getUser();
+
+//   if (!token) {
+//     return <Navigate to="/login" replace />;
+//   }
+
+//   if (allowedRoles && !allowedRoles.includes(user?.role)) {
+//     return <Navigate to="/unauthorized" replace />;
+//   }
+
+//   return children;
+// }
+
+// Role-based redirect after login
+function RoleBasedRedirect() {
+  const user = getUser();
+  
+  if (user?.role === 'admin') {
+    return <Navigate to="/admin/dashboard" replace />;
+  }
+  if (user?.role === 'student') {
+    return <Navigate to="/student/dashboard" replace />;
+  }
+  
+  return <Navigate to="/login" replace />;
+}
 
 export default function App() {
   return (
@@ -37,6 +71,31 @@ export default function App() {
             </ProtectedRoute>
           }
         />
+         <Route
+            path="/admin/jobs"
+            element={
+              <ProtectedRoute allowedRoles={['admin']}>
+                <AdminJobs />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/settings"
+            element={
+              <ProtectedRoute allowedRoles={['admin']}>
+                <AdminSettings />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+          path="/admin/students"
+          element={
+            <ProtectedRoute allowedRoles={[ROLES.ADMIN]}>
+              <AdminStudents />
+            </ProtectedRoute>
+          }
+        />
+          <Route path="/unauthorized" element={<div className="p-12 text-center"><h1>Access Denied</h1></div>} />
 
         <Route path="*" element={<div className="flex items-center justify-center min-h-screen"><h1 className="text-4xl font-bold text-gray-800">404 Not Found</h1></div>} />
       </Routes>

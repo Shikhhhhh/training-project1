@@ -100,3 +100,70 @@ export const uploadAPI = {
     return handleResponse(response);
   },
 };
+
+// Add to client/src/services/api.js
+
+export const adminAPI = {
+  // Dashboard stats
+  getStats: async () => {
+    const response = await fetch(`${API_URL}/student/stats`, {
+      headers: getHeaders(),
+    });
+    return handleResponse(response);
+  },
+
+  // Get all students with filters
+  getStudents: async (params = {}) => {
+    const query = new URLSearchParams(params).toString();
+    const response = await fetch(`${API_URL}/student/profiles?${query}`, {
+      headers: getHeaders(),
+    });
+    return handleResponse(response);
+  },
+
+  // Get specific student
+  getStudent: async (id) => {
+    const response = await fetch(`${API_URL}/student/profile/${id}`, {
+      headers: getHeaders(),
+    });
+    return handleResponse(response);
+  },
+
+  // Get all jobs
+  getJobs: async (params = {}) => {
+    const query = new URLSearchParams(params).toString();
+    const response = await fetch(`${API_URL}/jobs?${query}`, {
+      headers: getHeaders(),
+    });
+    return handleResponse(response);
+  },
+
+  // Create job
+  createJob: async (jobData) => {
+    const response = await fetch(`${API_URL}/jobs`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(jobData),
+    });
+    return handleResponse(response);
+  },
+
+  // Update job
+  updateJob: async (id, jobData) => {
+    const response = await fetch(`${API_URL}/jobs/${id}`, {
+      method: 'PUT',
+      headers: getHeaders(),
+      body: JSON.stringify(jobData),
+    });
+    return handleResponse(response);
+  },
+
+  // Delete job
+  deleteJob: async (id) => {
+    const response = await fetch(`${API_URL}/jobs/${id}`, {
+      method: 'DELETE',
+      headers: getHeaders(),
+    });
+    return handleResponse(response);
+  },
+};
