@@ -184,4 +184,4 @@ router.post('/verification', protect, (req, res, next) => {
   });
 });
 
-export default ;
+export default router ;
