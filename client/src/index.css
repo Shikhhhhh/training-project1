@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@600;700;800&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -8,8 +10,106 @@
   box-sizing: border-box;
 }
 
+:root {
+  --transition-fast: 150ms;
+  --transition-normal: 200ms;
+  --transition-slow: 300ms;
+  --transition-page: 400ms;
+}
+
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  transition: background-color var(--transition-normal), color var(--transition-normal);
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+/* Smooth Scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Glassmorphism Utilities */
+.glass {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.glass-dark {
+  background: rgba(15, 23, 42, 0.7);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Modern Button Styles */
+.btn-primary {
+  background: linear-gradient(135deg, #7C3AED 0%, #14B8A6 100%);
+  transition: all var(--transition-normal);
+}
+
+.btn-primary:hover {
+  transform: scale(1.02);
+  box-shadow: 0 10px 25px rgba(124, 58, 237, 0.3);
+}
+
+.btn-primary:active {
+  transform: scale(0.98);
+}
+
+/* Card Hover Effects */
+.card-hover {
+  transition: all var(--transition-slow);
+}
+
+.card-hover:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+}
+
+/* Input Focus Styles */
+.modern-input:focus {
+  border-color: #7C3AED;
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.1);
+  outline: none;
+}
+
+/* Loading Spinner Animation */
+@keyframes spin-smooth {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.spinner {
+  animation: spin-smooth 1.5s linear infinite;
+}
+
+/* Pulse Animation for Success */
+@keyframes pulse-success {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.8;
+    transform: scale(1.05);
+  }
+}
+
+.pulse-success {
+  animation: pulse-success 0.5s ease-in-out;
 }
 
 /* Force placeholder to be visible in dark inputs */
@@ -37,4 +137,304 @@ body {
 .ant-input-affix-wrapper input {
   background-color: transparent !important;
   color: #ffffff !important;
+}
+
+/* Dark Mode Adjustments */
+.dark .ant-input,
+.dark .ant-select-selector {
+  background-color: #1e293b !important;
+  border-color: #334155 !important;
+  color: #f1f5f9 !important;
+}
+
+.dark .ant-input:focus,
+.dark .ant-select-focused .ant-select-selector {
+  border-color: #7C3AED !important;
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.2) !important;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #7C3AED;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #6D28D9;
+}
+
+.dark ::-webkit-scrollbar-track {
+  background: #1e293b;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: #7C3AED;
+}
+
+/* Page Transition */
+.page-enter {
+  opacity: 0;
+  transform: translateY(20px);
+}
+
+.page-enter-active {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity var(--transition-page), transform var(--transition-page);
+}
+
+.page-exit {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.page-exit-active {
+  opacity: 0;
+  transform: translateY(-20px);
+  transition: opacity var(--transition-page), transform var(--transition-page);
+}
+
+/* Student Jobs Page Specific Styles */
+.animate-fade-in {
+  animation: fade-in 0.5s ease-out forwards;
+  opacity: 0;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.modern-search .ant-input {
+  border-radius: 12px !important;
+  border: 1px solid #E5E7EB !important;
+  padding: 12px 16px !important;
+  font-size: 14px !important;
+  transition: all 0.2s !important;
+}
+
+.modern-search .ant-input:focus {
+  border-color: #7C3AED !important;
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.1) !important;
+}
+
+.modern-select .ant-select-selector {
+  border-radius: 12px !important;
+  border: 1px solid #E5E7EB !important;
+  padding: 4px 12px !important;
+  height: 48px !important;
+  transition: all 0.2s !important;
+}
+
+.modern-select .ant-select-focused .ant-select-selector {
+  border-color: #7C3AED !important;
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.1) !important;
+}
+
+.success-toast {
+  border-radius: 12px !important;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* Login Page Styles */
+.modern-input input,
+.modern-input .ant-input-password-input {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+  border-color: rgba(255, 255, 255, 0.2) !important;
+  color: #fff !important;
+}
+
+.modern-input input::placeholder,
+.modern-input .ant-input-password-input::placeholder {
+  color: rgba(255, 255, 255, 0.5) !important;
+}
+
+.modern-input input:focus,
+.modern-input .ant-input-password-input:focus {
+  background-color: rgba(255, 255, 255, 0.15) !important;
+  border-color: #7C3AED !important;
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.2) !important;
+}
+
+.modern-form .ant-checkbox-wrapper {
+  color: rgba(255, 255, 255, 0.8) !important;
+}
+
+.modern-form .ant-checkbox-inner {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+  border-color: rgba(255, 255, 255, 0.3) !important;
+}
+
+.modern-form .ant-checkbox-checked .ant-checkbox-inner {
+  background-color: #7C3AED !important;
+  border-color: #7C3AED !important;
+}
+
+/* Modern Table Styles */
+.modern-table .ant-table {
+  background: transparent !important;
+}
+
+.modern-table .ant-table-thead > tr > th {
+  background: linear-gradient(135deg, rgba(124, 58, 237, 0.1) 0%, rgba(20, 184, 166, 0.1) 100%) !important;
+  border-bottom: 2px solid #E5E7EB !important;
+  font-weight: 600 !important;
+  color: #1F2937 !important;
+  padding: 16px !important;
+}
+
+.modern-table .ant-table-tbody > tr > td {
+  padding: 16px !important;
+  border-bottom: 1px solid #F3F4F6 !important;
+}
+
+.modern-table .ant-table-tbody > tr:hover > td {
+  background-color: rgba(124, 58, 237, 0.05) !important;
+}
+
+/* Dark Mode Table */
+.dark .modern-table .ant-table-thead > tr > th {
+  background: rgba(124, 58, 237, 0.15) !important;
+  color: #F1F5F9 !important;
+  border-bottom: 2px solid #334155 !important;
+}
+
+.dark .modern-table .ant-table-tbody > tr > td {
+  border-bottom: 1px solid #334155 !important;
+  color: #E2E8F0 !important;
+}
+
+.dark .modern-table .ant-table-tbody > tr:hover > td {
+  background-color: rgba(124, 58, 237, 0.1) !important;
+}
+
+/* Modern Pagination */
+.modern-pagination .ant-pagination-item {
+  border-radius: 8px !important;
+  border-color: #E5E7EB !important;
+}
+
+.modern-pagination .ant-pagination-item:hover {
+  border-color: #7C3AED !important;
+}
+
+.modern-pagination .ant-pagination-item-active {
+  background: linear-gradient(135deg, #7C3AED 0%, #14B8A6 100%) !important;
+  border-color: transparent !important;
+}
+
+.modern-pagination .ant-pagination-item-active a {
+  color: white !important;
+}
+
+/* Modern Modal */
+.modern-modal .ant-modal-content {
+  border-radius: 24px !important;
+  overflow: hidden !important;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25) !important;
+}
+
+.modern-modal .ant-modal-header {
+  background: linear-gradient(135deg, rgba(124, 58, 237, 0.1) 0%, rgba(20, 184, 166, 0.1) 100%) !important;
+  border-bottom: 1px solid #E5E7EB !important;
+  padding: 24px !important;
+}
+
+.modern-modal .ant-modal-body {
+  padding: 0 !important;
+}
+
+/* Dark Mode Modal */
+.dark .modern-modal .ant-modal-header {
+  background: rgba(124, 58, 237, 0.15) !important;
+  border-bottom: 1px solid #334155 !important;
+}
+
+/* Tag Improvements */
+.ant-tag {
+  border-radius: 12px !important;
+  padding: 4px 12px !important;
+  font-size: 12px !important;
+  font-weight: 500 !important;
+}
+
+/* Button Enhancements */
+.ant-btn-primary {
+  background: linear-gradient(135deg, #7C3AED 0%, #14B8A6 100%) !important;
+  border: none !important;
+  box-shadow: 0 4px 15px rgba(124, 58, 237, 0.4) !important;
+  transition: all 0.3s ease !important;
+}
+
+.ant-btn-primary:hover {
+  background: linear-gradient(135deg, #6D28D9 0%, #0D9488 100%) !important;
+  box-shadow: 0 6px 20px rgba(124, 58, 237, 0.5) !important;
+  transform: translateY(-2px) !important;
+}
+
+.ant-btn-primary:active {
+  transform: translateY(0) !important;
+}
+
+/* Card Hover Effects */
+.card-hover {
+  transition: all 0.3s ease !important;
+}
+
+.card-hover:hover {
+  transform: translateY(-4px) !important;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04) !important;
+}
+
+/* Fade In Animation */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.5s ease-out;
+}
+
+/* Pulse Animation for Loading */
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.animate-pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.delay-1000 {
+  animation-delay: 1s;
+}
+
+.delay-2000 {
+  animation-delay: 2s;
 }

@@ -1,5 +1,6 @@
 import express from 'express';
-import { Job, Application } from '../models/index.js';
+import mongoose from 'mongoose';
+import { Job, Application, StudentProfile } from '../models/index.js';
 import { protect, authorize } from '../middleware/auth.js';
 
 const router = express.Router();
@@ -35,7 +36,7 @@ router.get('/', async (req, res) => {
     if (search) {
       filter.$or = [
         { title: { $regex: search, $options: 'i' } },
-        { companyName: { $regex: search, $options: 'i' } },  // ✅ Changed from 'company'
+        { companyName: { $regex: search, $options: 'i' } },
         { description: { $regex: search, $options: 'i' } },
       ];
     }
@@ -130,6 +131,91 @@ router.get('/:id', async (req, res) => {
   }
 });
 
+// ✅ Apply for a job (Student only)
+// @route   POST /api/jobs/:id/apply
+// @desc    Apply for a specific job
+// @access  Private/Student
+router.post('/:id/apply', protect, authorize('student'), async (req, res) => {
+  try {
+    const jobId = req.params.id;
+    const studentId = req.user.userId;
+
+    console.log(`📝 Student ${studentId} applying for job ${jobId}`);
+
+    // Check if job exists and is active
+    const job = await Job.findById(jobId);
+    if (!job) {
+      return res.status(404).json({
+        success: false,
+        error: 'Job not found',
+      });
+    }
+
+    if (job.status !== 'active') {
+      return res.status(400).json({
+        success: false,
+        error: 'This job is no longer accepting applications',
+      });
+    }
+
+    // Check if already applied - ensure ObjectId types
+    const existingApplication = await Application.findOne({
+      jobId: new mongoose.Types.ObjectId(jobId),
+      studentId: new mongoose.Types.ObjectId(studentId),
+    });
+
+    if (existingApplication) {
+      return res.status(400).json({
+        success: false,
+        error: 'You have already applied for this job',
+      });
+    }
+
+    // Get student profile to get resume URL
+    const studentProfile = await StudentProfile.findOne({ user: studentId });
+    
+    if (!studentProfile || !studentProfile.resume) {
+      return res.status(400).json({
+        success: false,
+        error: 'Please upload your resume in your profile before applying',
+      });
+    }
+
+    // Create application - ensure ObjectId types  
+    const application = await Application.create({
+      jobId: new mongoose.Types.ObjectId(jobId),
+      studentId: new mongoose.Types.ObjectId(studentId),
+      resumeUrl: studentProfile.resume,
+      status: 'pending',
+      appliedAt: new Date(),
+    });
+
+    console.log(`✅ Application created: ${application._id}`);
+    console.log(`   JobId: ${application.jobId}, StudentId: ${application.studentId}`);
+    
+    // Verify the application was saved correctly
+    const verifyApplication = await Application.findById(application._id);
+    console.log(`   Verification - JobId: ${verifyApplication?.jobId}, StudentId: ${verifyApplication?.studentId}`);
+
+    // Increment application count on job
+    await Job.findByIdAndUpdate(jobId, {
+      $inc: { applicationCount: 1 },
+    });
+
+    res.status(201).json({
+      success: true,
+      message: 'Application submitted successfully',
+      application,
+    });
+  } catch (error) {
+    console.error('❌ Apply error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to submit application',
+    });
+  }
+});
+
 // ============================================
 // RECRUITER-ONLY ROUTES
 // ============================================
@@ -166,9 +252,9 @@ router.post('/', protect, authorize('admin', 'recruiter'), async (req, res) => {
     // Normalize jobType - map frontend values to schema values
     const jobTypeMap = {
       'internship': 'internship',
-      'fulltime': 'full-time',        // ← Map 'fulltime' to 'full-time'
+      'fulltime': 'full-time',
       'full-time': 'full-time',
-      'parttime': 'part-time',        // ← Map 'parttime' to 'part-time'
+      'parttime': 'part-time',
       'part-time': 'part-time',
       'contract': 'contract',
     };
@@ -185,7 +271,7 @@ router.post('/', protect, authorize('admin', 'recruiter'), async (req, res) => {
       description: description,
       location: location,
       applicationDeadline: applicationDeadline,
-      jobType: normalizedJobType,  // ← Use normalized value
+      jobType: normalizedJobType,
       skills: requirements ? [requirements] : [],
       duration: { value: duration || 1, unit: 'months' },
       stipend: { min: stipend || 0, max: stipend || 0, currency: 'INR' },
@@ -208,9 +294,6 @@ router.post('/', protect, authorize('admin', 'recruiter'), async (req, res) => {
     });
   }
 });
-
-
-
 
 // @route   GET /api/jobs/recruiter/me
 // @desc    Get all jobs posted by current recruiter
@@ -361,8 +444,8 @@ router.patch('/:id/status', protect, authorize('recruiter'), async (req, res) =>
 
 // @route   DELETE /api/jobs/:id
 // @desc    Delete a job
-// @access  Private/Recruiter (own jobs only)
-router.delete('/:id', protect, authorize('recruiter'), async (req, res) => {
+// @access  Private/Recruiter/Admin (recruiters can only delete own jobs, admin can delete any)
+router.delete('/:id', protect, authorize('recruiter', 'admin'), async (req, res) => {
   try {
     const job = await Job.findById(req.params.id);
 
@@ -373,16 +456,18 @@ router.delete('/:id', protect, authorize('recruiter'), async (req, res) => {
       });
     }
 
-    // Check ownership
-    if (job.recruiterId.toString() !== req.user.userId) {
+    // Check ownership (admin can delete any job, recruiter can only delete own jobs)
+    if (req.user.role !== 'admin' && job.recruiterId.toString() !== req.user.userId) {
       return res.status(403).json({ 
         success: false,
         error: 'You can only delete your own jobs' 
       });
     }
 
-    // Check if there are applications
-    const applicationCount = await Application.countDocuments({ job: job._id });
+    // Check if there are applications (use jobId field, not job)
+    const applicationCount = await Application.countDocuments({ 
+      jobId: new mongoose.Types.ObjectId(job._id) 
+    });
     
     if (applicationCount > 0) {
       return res.status(400).json({ 
@@ -429,9 +514,10 @@ router.get('/:id/applications', protect, authorize('recruiter'), async (req, res
       });
     }
 
-    const applications = await Application.find({ job: req.params.id })
-      .populate('student', 'name email department')
-      .populate('studentProfile', 'cgpa skills resume')
+    const applications = await Application.find({ 
+      jobId: new mongoose.Types.ObjectId(req.params.id) 
+    })
+      .populate('studentId', 'name email department')
       .sort('-createdAt');
 
     res.json({
@@ -448,5 +534,4 @@ router.get('/:id/applications', protect, authorize('recruiter'), async (req, res
     });
   }
 });
-
 export default router;

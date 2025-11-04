@@ -25,6 +25,9 @@ const handleResponse = async (response) => {
   return data;
 };
 
+// ============================================
+// AUTH API
+// ============================================
 export const authAPI = {
   login: async (credentials) => {
     const response = await fetch(`${API_URL}/auth/login`, {
@@ -36,6 +39,9 @@ export const authAPI = {
   },
 };
 
+// ============================================
+// STUDENT API
+// ============================================
 export const studentAPI = {
   getProfile: async () => {
     const response = await fetch(`${API_URL}/student/profile/me`, {
@@ -61,9 +67,18 @@ export const studentAPI = {
     });
     return handleResponse(response);
   },
+
+  getMyApplications: async () => {
+    const response = await fetch(`${API_URL}/applications/me`, {
+      headers: getHeaders(),
+    });
+    return handleResponse(response);
+  },
 };
 
-// ✅ ADD THIS NEW SECTION
+// ============================================
+// USERS API
+// ============================================
 export const usersAPI = {
   getMe: async () => {
     const response = await fetch(`${API_URL}/users/me`, {
@@ -73,6 +88,9 @@ export const usersAPI = {
   },
 };
 
+// ============================================
+// UPLOAD API
+// ============================================
 export const uploadAPI = {
   uploadProfilePicture: async (file) => {
     const token = getToken();
@@ -101,12 +119,44 @@ export const uploadAPI = {
   },
 };
 
-// Add to client/src/services/api.js
+// ============================================
+// JOBS API (for students - browse & apply)
+// ============================================
+export const jobAPI = {
+  // Get all active jobs with filters
+  getJobs: async (params = {}) => {
+    const query = new URLSearchParams(params).toString();
+    const response = await fetch(`${API_URL}/jobs?${query}`, {
+      headers: getHeaders(),
+    });
+    return handleResponse(response);
+  },
 
+  // Get single job details
+  getJobDetails: async (jobId) => {
+    const response = await fetch(`${API_URL}/jobs/${jobId}`, {
+      headers: getHeaders(),
+    });
+    return handleResponse(response);
+  },
+
+  // Apply for a job
+  applyForJob: async (jobId) => {
+    const response = await fetch(`${API_URL}/jobs/${jobId}/apply`, {
+      method: 'POST',
+      headers: getHeaders(),
+    });
+    return handleResponse(response);
+  },
+};
+
+// ============================================
+// ADMIN API
+// ============================================
 export const adminAPI = {
   // Dashboard stats
   getStats: async () => {
-    const response = await fetch(`${API_URL}/student/stats`, {
+    const response = await fetch(`${API_URL}/admin/stats`, {
       headers: getHeaders(),
     });
     return handleResponse(response);
@@ -115,7 +165,7 @@ export const adminAPI = {
   // Get all students with filters
   getStudents: async (params = {}) => {
     const query = new URLSearchParams(params).toString();
-    const response = await fetch(`${API_URL}/student/profiles?${query}`, {
+    const response = await fetch(`${API_URL}/admin/students?${query}`, {
       headers: getHeaders(),
     });
     return handleResponse(response);
@@ -123,16 +173,16 @@ export const adminAPI = {
 
   // Get specific student
   getStudent: async (id) => {
-    const response = await fetch(`${API_URL}/student/profile/${id}`, {
+    const response = await fetch(`${API_URL}/admin/students/${id}`, {
       headers: getHeaders(),
     });
     return handleResponse(response);
   },
 
-  // Get all jobs
+  // Get all jobs (admin view)
   getJobs: async (params = {}) => {
     const query = new URLSearchParams(params).toString();
-    const response = await fetch(`${API_URL}/jobs?${query}`, {
+    const response = await fetch(`${API_URL}/admin/jobs?${query}`, {
       headers: getHeaders(),
     });
     return handleResponse(response);
@@ -162,6 +212,14 @@ export const adminAPI = {
   deleteJob: async (id) => {
     const response = await fetch(`${API_URL}/jobs/${id}`, {
       method: 'DELETE',
+      headers: getHeaders(),
+    });
+    return handleResponse(response);
+  },
+
+  // Get applications for a job
+  getJobApplications: async (jobId) => {
+    const response = await fetch(`${API_URL}/admin/jobs/${jobId}/applications`, {
       headers: getHeaders(),
     });
     return handleResponse(response);

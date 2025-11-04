@@ -1,5 +1,5 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
-import { ConfigProvider, theme } from 'antd';
+import { ConfigProvider } from 'antd';
 import Login from './pages/auth/Login.jsx';
 import StudentDashboard from './pages/student/Dashboard.jsx';
 import AdminDashboard from './pages/admin/Dashboard.jsx';
@@ -45,8 +45,15 @@ export default function App() {
     <ConfigProvider
       theme={{
         token: {
-          colorPrimary: '#A855F7',
-          borderRadius: 8,
+          colorPrimary: '#7C3AED',
+          borderRadius: 12,
+          colorSuccess: '#10B981',
+          colorWarning: '#F59E0B',
+          colorError: '#EF4444',
+          colorInfo: '#06B6D4',
+          fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif",
+          fontSize: 14,
+          lineHeight: 1.5,
         },
       }}
     >

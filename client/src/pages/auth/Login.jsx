@@ -1,15 +1,33 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Form, Input, Button, message } from 'antd';
-import { EyeOutlined, EyeInvisibleOutlined } from '@ant-design/icons';
+import { Form, Input, Button, message, Checkbox } from 'antd';
+import { UserOutlined, LockOutlined, EyeOutlined, EyeInvisibleOutlined } from '@ant-design/icons';
 import { authAPI } from '../../services/api.js';
 import { setAuth } from '../../services/auth.js';
 import { ROUTES, ROLES } from '../../utils/constants.js';
-import leftImage from '../../assets/card-payment.png';
 
 export default function Login() {
   const [loading, setLoading] = useState(false);
+  const [form] = Form.useForm();
   const navigate = useNavigate();
+  const [isDark, setIsDark] = useState(() => {
+    return localStorage.getItem('theme') === 'dark' || 
+           window.matchMedia('(prefers-color-scheme: dark)').matches;
+  });
+
+  useEffect(() => {
+    if (isDark) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [isDark]);
+
+  const toggleTheme = () => {
+    const newTheme = !isDark;
+    setIsDark(newTheme);
+    localStorage.setItem('theme', newTheme ? 'dark' : 'light');
+  };
 
   const onFinish = async (values) => {
     setLoading(true);
@@ -17,161 +35,192 @@ export default function Login() {
       const data = await authAPI.login(values);
       if (data.success) {
         setAuth(data.token, data.user);
-        message.success('Welcome back!');
+        message.success({
+          content: 'Welcome back! 🎉',
+          duration: 2,
+          className: 'success-toast',
+        });
         const { role } = data.user;
         if (role === ROLES.ADMIN) navigate(ROUTES.ADMIN_DASHBOARD);
         else if (role === ROLES.STUDENT) navigate(ROUTES.STUDENT_DASHBOARD);
         else navigate('/dashboard');
       }
     } catch (error) {
-      message.error(error.message || 'Login failed');
+      message.error({
+        content: error.message || 'Login failed',
+        duration: 3,
+      });
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-black flex items-center justify-center px-4">
-      <div className="w-full max-w-6xl grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
-        
-        {/* LEFT - PNG Image */}
-        <div className="hidden lg:flex justify-center items-center">
-          <img 
-            src={leftImage} 
-            alt="Internship Portal" 
-            className="w-full h-auto max-w-lg object-contain"
-          />
-        </div>
+    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-indigo-900 to-cyan-900 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 flex items-center justify-center px-4 relative overflow-hidden">
+      {/* Animated Background Shapes */}
+      <div className="absolute inset-0 overflow-hidden">
+        <div className="absolute top-20 left-20 w-96 h-96 bg-purple-500/20 rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute bottom-20 right-20 w-96 h-96 bg-cyan-500/20 rounded-full blur-3xl animate-pulse delay-1000"></div>
+        <div className="absolute top-1/2 left-1/2 w-96 h-96 bg-indigo-500/20 rounded-full blur-3xl animate-pulse delay-2000"></div>
+      </div>
 
-        {/* RIGHT - Instagram-Style Form */}
-        <div className="w-full max-w-sm mx-auto">
+      {/* Login Card with Glassmorphism */}
+      <div className="relative z-10 w-full max-w-md">
+        <div className="bg-white/10 dark:bg-slate-800/80 backdrop-blur-xl rounded-3xl border border-white/20 dark:border-slate-700/50 shadow-2xl p-8 md:p-10 transition-all duration-300 hover:shadow-purple-500/20">
           
-          {/* Logo */}
+          {/* Logo & Title */}
           <div className="text-center mb-8">
-            <h1 className="text-white text-5xl mb-2" style={{ fontFamily: 'cursive', fontWeight: 'normal' }}>
-              Portal-Login
+            <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-purple-500 to-cyan-500 rounded-2xl mb-4 shadow-lg">
+              <UserOutlined className="text-4xl text-white" />
+            </div>
+            <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-400 to-cyan-400 bg-clip-text text-transparent mb-2">
+              Internship Portal
             </h1>
+            <p className="text-gray-300 dark:text-gray-400 text-sm">
+              Sign in to access your dashboard
+            </p>
           </div>
 
-          {/* Form Container (Black Background) */}
-          <div className="space-y-3">
-            
-            <Form onFinish={onFinish} layout="vertical">
-              {/* Email Input */}
-              <Form.Item
-                name="email"
-                rules={[
-                  { required: true, message: '' },
-                  { type: 'email', message: '' }
-                ]}
-              >
-                <Input
-                  placeholder="Phone number, username, or email"
-                  style={{
-                    backgroundColor: '#121212',
-                    border: '1px solid #262626',
-                    color: '#ffffff',
-                    padding: '12px',
-                    fontSize: '14px',
-                    borderRadius: '4px'
-                  }}
-                  className="text-white placeholder-gray-500"
-                />
-              </Form.Item>
-
-              {/* Password Input */}
-              <Form.Item
-                name="password"
-                rules={[{ required: true, message: '' }]}
-              >
-                <Input.Password
-                  placeholder="Password"
-                  iconRender={(visible) => (
-                    <span style={{ color: '#ffffff', fontSize: '12px', cursor: 'pointer' }}>
-                      {visible ? 'Hide' : 'Show'}
-                    </span>
-                  )}
-                  style={{
-                    backgroundColor: '#121212',
-                    border: '1px solid #262626',
-                    color: '#ffffff',
-                    padding: '12px',
-                    fontSize: '14px',
-                    borderRadius: '4px'
-                  }}
-                  className="text-white placeholder-gray-500"
-                />
-              </Form.Item>
-
-              {/* Login Button */}
-              <Form.Item>
-                <Button
-                  type="primary"
-                  htmlType="submit"
-                  loading={loading}
-                  block
-                  style={{
-                    backgroundColor: '#A376FF',
-                    border: 'none',
-                    borderRadius: '8px',
-                    height: '44px',
-                    fontSize: '14px',
-                    fontWeight: '600',
-                    color: '#ffffff'
-                  }}
-                  className="hover:bg-blue-600"
-                >
-                  Log in
-                </Button>
-              </Form.Item>
-            </Form>
-
-            {/* OR Divider */}
-            <div className="flex items-center my-5">
-              <div className="flex-1 h-px bg-gray-700"></div>
-              <span className="px-4 text-gray-500 text-sm font-semibold">OR</span>
-              <div className="flex-1 h-px bg-gray-700"></div>
-            </div>
-
-            {/* Facebook Login */}
-           <button 
-            type="button"
-             onClick={() => console.log('Facebook login clicked')}
-              className="w-full flex items-center justify-center gap-2 text-blue-500 font-semibold text-sm py-2.5 hover:text-blue-400 bg-black rounded-md transition-colors duration-200"
-               style={{ 
-                        border: 'none',
-                        outline: 'none',
-                        boxShadow: 'none',
-                        WebkitAppearance: 'none',
-                        MozAppearance: 'none'
-                      }}
+          {/* Login Form */}
+          <Form
+            form={form}
+            onFinish={onFinish}
+            layout="vertical"
+            size="large"
+            className="modern-form"
+          >
+            {/* Email Input */}
+            <Form.Item
+              name="email"
+              rules={[
+                { required: true, message: 'Please enter your email' },
+                { type: 'email', message: 'Please enter a valid email' }
+              ]}
             >
-              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
-              </svg>
-              Log in with Facebook
-            </button>
+              <Input
+                prefix={<UserOutlined className="text-purple-400" />}
+                placeholder="Email address"
+                className="modern-input"
+                style={{
+                  height: '48px',
+                  borderRadius: '12px',
+                  backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                  border: '1px solid rgba(255, 255, 255, 0.2)',
+                  color: '#fff',
+                }}
+              />
+            </Form.Item>
 
-            {/* Forgot Password */}
-            <div className="text-center mt-6">
-              <a href="#" className="text-gray-400 text-xs hover:text-gray-300">
+            {/* Password Input */}
+            <Form.Item
+              name="password"
+              rules={[{ required: true, message: 'Please enter your password' }]}
+            >
+              <Input.Password
+                prefix={<LockOutlined className="text-purple-400" />}
+                placeholder="Password"
+                iconRender={(visible) => 
+                  visible ? (
+                    <EyeOutlined className="text-gray-400" />
+                  ) : (
+                    <EyeInvisibleOutlined className="text-gray-400" />
+                  )
+                }
+                className="modern-input"
+                style={{
+                  height: '48px',
+                  borderRadius: '12px',
+                  backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                  border: '1px solid rgba(255, 255, 255, 0.2)',
+                  color: '#fff',
+                }}
+              />
+            </Form.Item>
+
+            {/* Remember Me & Forgot Password */}
+            <div className="flex items-center justify-between mb-6">
+              <Form.Item name="remember" valuePropName="checked" noStyle>
+                <Checkbox className="text-gray-300 dark:text-gray-400">
+                  Remember me
+                </Checkbox>
+              </Form.Item>
+              <a 
+                href="#" 
+                className="text-purple-300 hover:text-purple-200 text-sm font-medium transition-colors"
+              >
                 Forgot password?
               </a>
             </div>
+
+            {/* Login Button */}
+            <Form.Item>
+              <Button
+                type="primary"
+                htmlType="submit"
+                loading={loading}
+                block
+                className="modern-button-primary"
+                style={{
+                  height: '52px',
+                  borderRadius: '12px',
+                  background: 'linear-gradient(135deg, #7C3AED 0%, #14B8A6 100%)',
+                  border: 'none',
+                  fontSize: '16px',
+                  fontWeight: 600,
+                  boxShadow: '0 4px 15px rgba(124, 58, 237, 0.4)',
+                  transition: 'all 0.3s ease',
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.transform = 'scale(1.02)';
+                  e.target.style.boxShadow = '0 6px 20px rgba(124, 58, 237, 0.5)';
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.transform = 'scale(1)';
+                  e.target.style.boxShadow = '0 4px 15px rgba(124, 58, 237, 0.4)';
+                }}
+              >
+                {loading ? 'Signing in...' : 'Sign In'}
+              </Button>
+            </Form.Item>
+          </Form>
+
+          {/* Divider */}
+          <div className="flex items-center my-6">
+            <div className="flex-1 h-px bg-gradient-to-r from-transparent via-white/30 to-transparent"></div>
+            <span className="px-4 text-gray-400 text-sm font-medium">OR</span>
+            <div className="flex-1 h-px bg-gradient-to-r from-transparent via-white/30 to-transparent"></div>
           </div>
 
-          {/* Sign Up Section */}
-          <div className="mt-8 text-center">
-            <p className="text-gray-400 text-sm">
+          {/* Sign Up Link */}
+          <div className="text-center">
+            <p className="text-gray-300 dark:text-gray-400 text-sm">
               Don't have an account?{' '}
-              <a href="#" className="text-blue-500 font-semibold hover:text-blue-400">
+              <a 
+                href="#" 
+                className="text-cyan-400 hover:text-cyan-300 font-semibold transition-colors"
+              >
                 Sign up
               </a>
             </p>
           </div>
 
+          {/* Theme Toggle */}
+          <div className="mt-6 text-center">
+            <button
+              onClick={toggleTheme}
+              className="text-gray-400 hover:text-gray-300 text-sm transition-colors"
+            >
+              {isDark ? '☀️ Light Mode' : '🌙 Dark Mode'}
+            </button>
+          </div>
         </div>
+
+        {/* Footer */}
+        <p className="text-center text-gray-400 text-xs mt-6">
+          © 2025 Internship Portal. All rights reserved.
+        </p>
       </div>
+
     </div>
   );
 }

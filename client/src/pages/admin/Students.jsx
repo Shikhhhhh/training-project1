@@ -34,16 +34,21 @@ export default function AdminStudents() {
     setLoading(true);
     try {
       const data = await adminAPI.getStudents({ page, limit: 10, search });
+      console.log('Students data received:', data);
       if (data.success) {
-        setStudents(data.profiles);
+        setStudents(data.profiles || []);
         setPagination({
-          current: data.currentPage,
+          current: data.currentPage || page,
           pageSize: 10,
-          total: data.total,
+          total: data.total || 0,
         });
+      } else {
+        console.error('API returned success: false', data);
+        setStudents([]);
       }
     } catch (error) {
       console.error('Failed to fetch students:', error);
+      setStudents([]);
     } finally {
       setLoading(false);
     }
