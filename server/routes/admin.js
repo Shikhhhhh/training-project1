@@ -86,4 +86,56 @@ router.get('/users', protect, authorize('admin'), async (req, res) => {
   }
 });
 
+// Add this to admin.js
+router.post('/jobs', protect, authorize('admin'), async (req, res) => {
+  try {
+    const jobData = {
+      recruiterId: req.user.userId,
+      ...req.body,
+    };
+    const job = await Job.create(jobData);
+    res.status(201).json({
+      success: true,
+      message: 'Job created successfully',
+      job,
+    });
+  } catch (error) {
+    console.error('Create job error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to create job',
+      details: error.message,
+    });
+  }
+});
+
+router.get('/jobs', protect, authorize('admin'), async (req, res) => {
+  try {
+    const { page = 1, limit = 10, status } = req.query;
+    const filter = {};
+    if (status) filter.status = status;
+
+    const jobs = await Job.find(filter)
+      .populate('recruiterId', 'name email')
+      .limit(limit * 1)
+      .skip((page - 1) * limit)
+      .sort({ createdAt: -1 });
+
+    const count = await Job.countDocuments(filter);
+    res.json({
+      success: true,
+      jobs,
+      totalPages: Math.ceil(count / limit),
+      currentPage: Number(page),
+      total: count,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch jobs',
+      details: error.message,
+    });
+  }
+});
+
 export default router;

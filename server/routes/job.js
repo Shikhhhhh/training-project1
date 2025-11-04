@@ -13,33 +13,37 @@ const router = express.Router();
 // @access  Public
 router.get('/', async (req, res) => {
   try {
-    const { 
-      page = 1, 
-      limit = 10, 
-      search, 
-      skills, 
-      locationType, 
+    console.log('📥 GET /jobs - Query params:', req.query);
+
+    // Extract query parameters (NOT from req.body!)
+    const {
+      page = 1,
+      limit = 10,
+      search,
+      skills,
+      locationType,
       jobType,
-      minCTC,
-      maxCTC,
-      company,
-      sort = '-createdAt' 
+      status = 'active',
     } = req.query;
 
-    const filter = { status: 'active' };
+    console.log('Extracted params:', { page, limit, search, skills, locationType, jobType, status });
 
-    // Text search (searches in title, description, company)
+    // Build filter
+    const filter = { status };
+
+    // Text search - search in title, description, companyName
     if (search) {
       filter.$or = [
         { title: { $regex: search, $options: 'i' } },
-        { company: { $regex: search, $options: 'i' } },
+        { companyName: { $regex: search, $options: 'i' } },  // ✅ Changed from 'company'
         { description: { $regex: search, $options: 'i' } },
       ];
     }
 
     // Filter by skills (array of skills)
     if (skills) {
-      filter.skills = { $in: skills.split(',') };
+      const skillsArray = Array.isArray(skills) ? skills : skills.split(',');
+      filter.skills = { $in: skillsArray };
     }
 
     // Filter by location type
@@ -52,39 +56,41 @@ router.get('/', async (req, res) => {
       filter.jobType = jobType;
     }
 
-    // Filter by company
-    if (company) {
-      filter.company = { $regex: company, $options: 'i' };
-    }
+    console.log('Filter:', filter);
 
-    // Filter by CTC range
-    if (minCTC || maxCTC) {
-      filter.ctc = {};
-      if (minCTC) filter.ctc.$gte = Number(minCTC);
-      if (maxCTC) filter.ctc.$lte = Number(maxCTC);
-    }
+    // Pagination
+    const pageNum = Math.max(1, Number(page));
+    const limitNum = Math.max(1, Number(limit));
+    const skip = (pageNum - 1) * limitNum;
 
+    // Fetch jobs
     const jobs = await Job.find(filter)
-      .populate('recruiterId', 'name email company')
-      .limit(limit * 1)
-      .skip((page - 1) * limit)
-      .sort(sort);
+      .populate('recruiterId', 'name email')
+      .limit(limitNum)
+      .skip(skip)
+      .sort({ createdAt: -1 });
 
-    const count = await Job.countDocuments(filter);
+    // Get total count
+    const total = await Job.countDocuments(filter);
+
+    console.log(`✅ Found ${jobs.length} jobs (total: ${total})`);
 
     res.json({
       success: true,
       jobs,
-      totalPages: Math.ceil(count / limit),
-      currentPage: Number(page),
-      total: count,
+      pagination: {
+        total,
+        page: pageNum,
+        limit: limitNum,
+        pages: Math.ceil(total / limitNum),
+      },
     });
   } catch (error) {
-    console.error('Fetch jobs error:', error);
-    res.status(500).json({ 
+    console.error('❌ Fetch jobs error:', error);
+    res.status(500).json({
       success: false,
       error: 'Failed to fetch jobs',
-      details: error.message 
+      details: error.message,
     });
   }
 });
@@ -131,29 +137,80 @@ router.get('/:id', async (req, res) => {
 // @route   POST /api/jobs
 // @desc    Create a new job
 // @access  Private/Recruiter
-router.post('/', protect, authorize('recruiter'), async (req, res) => {
+router.post('/', protect, authorize('admin', 'recruiter'), async (req, res) => {
   try {
+    // Extract all values from body
+    const title = req.body.title;
+    const description = req.body.description;
+    const company = req.body.company;
+    const location = req.body.location;
+    const applicationDeadline = req.body.applicationDeadline;
+    const duration = req.body.duration;
+    const stipend = req.body.stipend;
+    const requirements = req.body.requirements;
+    let type = req.body.type;
+
+    console.log('📥 RAW REQUEST:');
+    console.log('  title:', title);
+    console.log('  company:', company);
+    console.log('  type received:', type);
+
+    // Validate required fields
+    if (!title || !company || !description || !location || !applicationDeadline) {
+      return res.status(400).json({
+        success: false,
+        error: 'All fields are required: title, company, description, location, applicationDeadline',
+      });
+    }
+
+    // Normalize jobType - map frontend values to schema values
+    const jobTypeMap = {
+      'internship': 'internship',
+      'fulltime': 'full-time',        // ← Map 'fulltime' to 'full-time'
+      'full-time': 'full-time',
+      'parttime': 'part-time',        // ← Map 'parttime' to 'part-time'
+      'part-time': 'part-time',
+      'contract': 'contract',
+    };
+
+    const normalizedJobType = jobTypeMap[type] || 'internship';
+    
+    console.log('  type normalized:', normalizedJobType);
+
+    // Create job object with exact schema field names
     const jobData = {
       recruiterId: req.user.userId,
-      ...req.body,
+      title: title,
+      companyName: company,
+      description: description,
+      location: location,
+      applicationDeadline: applicationDeadline,
+      jobType: normalizedJobType,  // ← Use normalized value
+      skills: requirements ? [requirements] : [],
+      duration: { value: duration || 1, unit: 'months' },
+      stipend: { min: stipend || 0, max: stipend || 0, currency: 'INR' },
     };
+
+    console.log('✅ Creating job with data:', jobData);
 
     const job = await Job.create(jobData);
 
     res.status(201).json({
       success: true,
-      message: 'Job created successfully',
-      job,
+      message: 'Job created successfully!',
+      job: job,
     });
   } catch (error) {
-    console.error('Create job error:', error);
-    res.status(500).json({ 
+    console.error('❌ Error creating job:', error.message);
+    res.status(500).json({
       success: false,
-      error: 'Failed to create job',
-      details: error.message 
+      error: error.message,
     });
   }
 });
+
+
+
 
 // @route   GET /api/jobs/recruiter/me
 // @desc    Get all jobs posted by current recruiter

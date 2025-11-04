@@ -30,15 +30,15 @@ const jobSchema = new mongoose.Schema(
       default: '',
     },
     skills: {
-      type: [String],
-      required: [true, 'Please provide required skills'],
-      validate: {
-        validator: function (arr) {
-          return arr.length > 0 && arr.length <= 20;
-        },
-        message: 'Skills must have 1-20 items',
-      },
+  type: [String],
+  default: [],  // ✅ Changed from required: [true, ...] to default: []
+  validate: {
+    validator: function (arr) {
+       return !arr || arr.length <= 20;  // ✅ Require 1-20 items
     },
+    message: 'Skills must have 1-20 items',
+  },
+},
     eligibility: {
       minCGPA: {
         type: Number,
@@ -87,7 +87,7 @@ const jobSchema = new mongoose.Schema(
     duration: {
       value: {
         type: Number,
-        default: 0,
+        default: 1,
       },
       unit: {
         type: String,
