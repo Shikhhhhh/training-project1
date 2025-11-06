@@ -140,7 +140,7 @@ router.get('/stats', protect, authorize('admin'), async (req, res) => {
 });
 
 // @route   GET /api/admin/students
-// @desc    Get all student profiles (Admin only)
+// @desc    Get all student users with their profiles (Admin only)
 // @access  Private/Admin
 router.get('/students', protect, authorize('admin'), async (req, res) => {
   try {
@@ -148,42 +148,67 @@ router.get('/students', protect, authorize('admin'), async (req, res) => {
     
     console.log('Fetching students with params:', { page, limit, search });
 
-    let filter = {};
+    let userFilter = { role: 'student' };
 
     // If search is provided, search in user name or email
     if (search && search.trim()) {
-      // First find users matching the search
-      const users = await User.find({
-        $or: [
-          { name: { $regex: search.trim(), $options: 'i' } },
-          { email: { $regex: search.trim(), $options: 'i' } },
-        ],
-        role: 'student',
-      }).select('_id');
-
-      const userIds = users.map(u => u._id);
-      
-      if (userIds.length > 0) {
-        // Find profiles for matching users
-        filter = { user: { $in: userIds } };
-      } else {
-        // No matching users found, return empty result
-        return res.json({
-          success: true,
-          profiles: [],
-          currentPage: Number(page),
-          total: 0,
-        });
-      }
+      userFilter.$or = [
+        { name: { $regex: search.trim(), $options: 'i' } },
+        { email: { $regex: search.trim(), $options: 'i' } },
+      ];
     }
 
-    const profiles = await StudentProfile.find(filter)
-      .populate('user', '_id name email department profilePicture')
+    // Get all student users with pagination
+    const students = await User.find(userFilter)
+      .select('_id name email department profilePicture isActive lastLogin createdAt')
       .limit(limit * 1)
       .skip((page - 1) * limit)
       .sort({ createdAt: -1 });
 
-    const count = await StudentProfile.countDocuments(filter);
+    const count = await User.countDocuments(userFilter);
+
+    // For each student user, get their profile if it exists
+    const profiles = await Promise.all(
+      students.map(async (student) => {
+        const profile = await StudentProfile.findOne({ user: student._id });
+        
+        if (profile) {
+          // Return profile with populated user
+          return {
+            ...profile.toObject(),
+            user: student.toObject()
+          };
+        } else {
+          // Return a minimal profile structure with user data
+          return {
+            _id: null, // No profile ID
+            user: student.toObject(),
+            program: null,
+            graduationYear: null,
+            cgpa: null,
+            skills: [],
+            projects: [],
+            resumeUrl: '',
+            githubUrl: '',
+            linkedinUrl: '',
+            portfolioUrl: '',
+            bio: '',
+            verifiedFlags: {
+              resumeVerified: false,
+              academicVerified: false,
+              identityVerified: false
+            },
+            isVerified: false,
+            verifiedBy: null,
+            verifiedAt: null,
+            isComplete: false,
+            completionPercentage: 0,
+            createdAt: student.createdAt,
+            updatedAt: student.createdAt
+          };
+        }
+      })
+    );
 
     console.log(`Found ${profiles.length} profiles (total: ${count})`);
 

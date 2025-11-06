@@ -10,7 +10,7 @@ import {
   UserOutlined,
   EyeOutlined,
 } from '@ant-design/icons';
-import { adminAPI } from '../../services/api';
+import { adminAPI, jobAPI } from '../../services/api';
 import AdminLayout from '../../components/common/AdminLayout';
 import dayjs from 'dayjs';
 

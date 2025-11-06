@@ -174,7 +174,7 @@ router.post('/:id/apply', protect, authorize('student'), async (req, res) => {
     // Get student profile to get resume URL
     const studentProfile = await StudentProfile.findOne({ user: studentId });
     
-    if (!studentProfile || !studentProfile.resume) {
+    if (!studentProfile || !studentProfile.resumeUrl) {
       return res.status(400).json({
         success: false,
         error: 'Please upload your resume in your profile before applying',
@@ -185,8 +185,9 @@ router.post('/:id/apply', protect, authorize('student'), async (req, res) => {
     const application = await Application.create({
       jobId: new mongoose.Types.ObjectId(jobId),
       studentId: new mongoose.Types.ObjectId(studentId),
-      resumeUrl: studentProfile.resume,
+      resumeUrl: studentProfile.resumeUrl,
       status: 'pending',
+      stage: 'applied',
       appliedAt: new Date(),
     });
 

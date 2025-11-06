@@ -34,8 +34,19 @@ export default function AdminStudents() {
     try {
       const data = await adminAPI.getStudents({ page, limit: 10, search });
       console.log('Students data received:', data);
+      
       if (data.success) {
-        setStudents(data.profiles || []);
+        // Filter out profiles without populated user data
+        // The backend should always populate user, but if it doesn't, we skip those records
+        const validStudents = (data.profiles || []).filter(profile => {
+          if (!profile.user || typeof profile.user !== 'object' || !profile.user._id) {
+            console.warn('Skipping profile without populated user:', profile._id);
+            return false;
+          }
+          return true;
+        });
+        
+        setStudents(validStudents);
         setPagination({
           current: data.currentPage || page,
           pageSize: 10,
@@ -81,44 +92,26 @@ export default function AdminStudents() {
   };
 
   const handleDeleteStudent = (student) => {
-    // Extract user ID - MUST be user._id, not profile._id
-    // The backend expects a user ID, not a profile ID
-    let userId = student.user?._id || student.user?.id;
+    // The student object should have a populated user field with _id
+    // student.user._id is the USER ID (what we need to pass to backend)
+    // student._id is the PROFILE ID (not what we need)
     
-    // Handle case where user might be an ObjectId reference string
-    if (!userId && student.user) {
-      // If user is populated as an object with _id property
-      userId = student.user._id;
-    }
-    
-    // If still no user ID, try to get it from the user field directly
-    if (!userId && typeof student.user === 'string') {
-      userId = student.user;
-    }
-    
-    // If no user ID found, we cannot proceed
-    if (!userId) {
-      console.error('Student record structure:', {
+    if (!student.user || !student.user._id) {
+      console.error('Student record missing user data:', {
         hasUser: !!student.user,
         userType: typeof student.user,
-        userValue: student.user,
         profileId: student._id,
         fullRecord: student
       });
-      message.error('Unable to find user ID in student record. Cannot delete without user ID.');
+      message.error('Unable to find user information. Cannot delete student.');
       return;
     }
     
-    // Convert to string if it's an object
-    if (typeof userId === 'object' && userId.toString) {
-      userId = userId.toString();
-    }
+    const userId = student.user._id;
     
     console.log('Delete student called with:', { 
-      studentName: student.user?.name || 'Unknown',
-      userId,
-      userIdType: typeof userId,
-      userObject: student.user,
+      studentName: student.user.name || 'Unknown',
+      userId: userId,
       profileId: student._id
     });
 
@@ -152,13 +145,17 @@ export default function AdminStudents() {
       render: (_, record) => (
         <div className="flex items-center gap-3">
           <Avatar 
-            src={record.user?.profilePicture} 
+            src={record.user?.profilePicture || record.profilePicture} 
             icon={<UserOutlined />}
             className="bg-purple-500/30 backdrop-blur-md border border-purple-400/30"
           />
           <div>
-            <div className="font-medium text-gray-800 dark:text-gray-100">{record.user?.name}</div>
-            <div className="text-xs text-gray-500 dark:text-gray-400">{record.user?.email}</div>
+            <div className="font-medium text-gray-800 dark:text-gray-100">
+              {record.user?.name || record.name || 'Unknown Student'}
+            </div>
+            <div className="text-xs text-gray-500 dark:text-gray-400">
+              {record.user?.email || record.email || 'No email'}
+            </div>
           </div>
         </div>
       ),
@@ -295,7 +292,7 @@ export default function AdminStudents() {
               className: 'modern-pagination',
             }}
             onChange={handleTableChange}
-            rowKey={(record) => record._id || record.user?._id || `${record._id}-${Date.now()}`}
+            rowKey={(record) => record.user?._id || record._id}
             className="modern-table"
             rowClassName="hover:bg-purple-50 dark:hover:bg-slate-700/50 transition-colors"
           />
