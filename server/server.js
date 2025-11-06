@@ -21,6 +21,7 @@ import applicationRoutes from './routes/application.js';
 import verificationRoutes from './routes/verification.js';
 import departmentRoutes from './routes/department.js';
 import skillRoutes from './routes/skill.js';
+import usersRoutes from './routes/users.js';
 
 
 
@@ -54,6 +55,7 @@ app.use(express.urlencoded({ extended: true }));
 // 4. All other routes (AFTER body parsers)
 console.log('✅ Registering other routes');
 app.use('/api/auth', authRoutes);
+app.use('/api/users', usersRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/student', studentRoutes);
 app.use('/api/jobs', jobRoutes);

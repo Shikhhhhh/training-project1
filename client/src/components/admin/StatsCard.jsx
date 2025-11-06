@@ -4,28 +4,28 @@ import { Card } from 'antd';
 export default function StatsCard({ title, value, icon, color = 'blue', trend }) {
   const colorConfigs = {
     blue: {
-      gradient: 'from-blue-500 to-cyan-500',
+      gradient: 'bg-blue-500/50',
       bg: 'bg-blue-50 dark:bg-blue-900/20',
       text: 'text-blue-600 dark:text-blue-400',
-      iconBg: 'bg-gradient-to-br from-blue-500 to-cyan-500',
+      iconBg: 'bg-blue-500/30 backdrop-blur-md border border-blue-400/30',
     },
     green: {
-      gradient: 'from-emerald-500 to-teal-500',
+      gradient: 'bg-emerald-500/50',
       bg: 'bg-emerald-50 dark:bg-emerald-900/20',
       text: 'text-emerald-600 dark:text-emerald-400',
-      iconBg: 'bg-gradient-to-br from-emerald-500 to-teal-500',
+      iconBg: 'bg-emerald-500/30 backdrop-blur-md border border-emerald-400/30',
     },
     purple: {
-      gradient: 'from-purple-500 to-indigo-500',
+      gradient: 'bg-purple-500/50',
       bg: 'bg-purple-50 dark:bg-purple-900/20',
       text: 'text-purple-600 dark:text-purple-400',
-      iconBg: 'bg-gradient-to-br from-purple-500 to-indigo-500',
+      iconBg: 'bg-purple-500/30 backdrop-blur-md border border-purple-400/30',
     },
     orange: {
-      gradient: 'from-amber-500 to-rose-500',
+      gradient: 'bg-amber-500/50',
       bg: 'bg-amber-50 dark:bg-amber-900/20',
       text: 'text-amber-600 dark:text-amber-400',
-      iconBg: 'bg-gradient-to-br from-amber-500 to-rose-500',
+      iconBg: 'bg-amber-500/30 backdrop-blur-md border border-amber-400/30',
     },
   };
 
@@ -77,8 +77,8 @@ export default function StatsCard({ title, value, icon, color = 'blue', trend })
         </div>
       </div>
       
-      {/* Gradient Accent Line */}
-      <div className={`h-1 bg-gradient-to-r ${config.gradient} rounded-full mt-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300`}></div>
+      {/* Accent Line */}
+      <div className={`h-1 ${config.gradient} backdrop-blur-sm rounded-full mt-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300`}></div>
     </Card>
   );
 }

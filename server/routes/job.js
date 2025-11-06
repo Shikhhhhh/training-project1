@@ -447,7 +447,19 @@ router.patch('/:id/status', protect, authorize('recruiter'), async (req, res) =>
 // @access  Private/Recruiter/Admin (recruiters can only delete own jobs, admin can delete any)
 router.delete('/:id', protect, authorize('recruiter', 'admin'), async (req, res) => {
   try {
-    const job = await Job.findById(req.params.id);
+    const jobId = req.params.id;
+    
+    console.log(`🗑️ ${req.user.role} ${req.user.userId} deleting job ${jobId}`);
+    
+    // Validate ObjectId format
+    if (!mongoose.Types.ObjectId.isValid(jobId)) {
+      return res.status(400).json({ 
+        success: false,
+        error: 'Invalid job ID format' 
+      });
+    }
+    
+    const job = await Job.findById(jobId);
 
     if (!job) {
       return res.status(404).json({ 
@@ -469,21 +481,33 @@ router.delete('/:id', protect, authorize('recruiter', 'admin'), async (req, res)
       jobId: new mongoose.Types.ObjectId(job._id) 
     });
     
-    if (applicationCount > 0) {
+    console.log(`📝 Found ${applicationCount} applications for job ${jobId}`);
+    
+    // Admin can delete jobs even with applications, recruiters cannot
+    if (applicationCount > 0 && req.user.role !== 'admin') {
       return res.status(400).json({ 
         success: false,
         error: `Cannot delete job with ${applicationCount} applications. Please close it instead.` 
       });
     }
 
+    // If admin is deleting, also delete all associated applications
+    if (req.user.role === 'admin' && applicationCount > 0) {
+      const deletedApps = await Application.deleteMany({ 
+        jobId: new mongoose.Types.ObjectId(job._id) 
+      });
+      console.log(`🗑️ Deleted ${deletedApps.deletedCount} applications`);
+    }
+
     await job.deleteOne();
+    console.log(`✅ Job ${jobId} deleted successfully`);
 
     res.json({
       success: true,
       message: 'Job deleted successfully',
     });
   } catch (error) {
-    console.error('Delete job error:', error);
+    console.error('❌ Delete job error:', error);
     res.status(500).json({ 
       success: false,
       error: 'Failed to delete job',

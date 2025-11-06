@@ -178,7 +178,7 @@ router.get('/students', protect, authorize('admin'), async (req, res) => {
     }
 
     const profiles = await StudentProfile.find(filter)
-      .populate('user', 'name email department profilePicture')
+      .populate('user', '_id name email department profilePicture')
       .limit(limit * 1)
       .skip((page - 1) * limit)
       .sort({ createdAt: -1 });
@@ -326,6 +326,123 @@ router.get('/jobs/:id/applications', protect, authorize('admin'), async (req, re
     res.status(500).json({ 
       success: false,
       error: 'Failed to fetch applications',
+      details: error.message 
+    });
+  }
+});
+
+// @route   PATCH /api/admin/students/:id/verify-resume
+// @desc    Toggle resume verification for a student profile
+// @access  Private/Admin
+router.patch('/students/:id/verify-resume', protect, authorize('admin'), async (req, res) => {
+  try {
+    const { verified } = req.body;
+    const profile = await StudentProfile.findOne({ user: req.params.id });
+    if (!profile) {
+      return res.status(404).json({ success: false, error: 'Student profile not found' });
+    }
+    profile.verifiedFlags = profile.verifiedFlags || {};
+    profile.verifiedFlags.resumeVerified = Boolean(verified);
+    await profile.save();
+    return res.json({ success: true, profile });
+  } catch (error) {
+    console.error('Verify resume error:', error);
+    res.status(500).json({ success: false, error: 'Failed to update resume verification' });
+  }
+});
+
+// @route   PATCH /api/admin/students/:id/verify
+// @desc    Toggle general student verification status
+// @access  Private/Admin
+router.patch('/students/:id/verify', protect, authorize('admin'), async (req, res) => {
+  try {
+    const { verified } = req.body;
+    const profile = await StudentProfile.findOne({ user: req.params.id });
+    if (!profile) {
+      return res.status(404).json({ success: false, error: 'Student profile not found' });
+    }
+    
+    profile.isVerified = Boolean(verified);
+    if (verified) {
+      profile.verifiedBy = req.user.userId;
+      profile.verifiedAt = new Date();
+    } else {
+      profile.verifiedBy = null;
+      profile.verifiedAt = null;
+    }
+    
+    await profile.save();
+    return res.json({ 
+      success: true, 
+      message: verified ? 'Student verified successfully' : 'Student verification removed',
+      profile 
+    });
+  } catch (error) {
+    console.error('Verify student error:', error);
+    res.status(500).json({ success: false, error: 'Failed to update student verification' });
+  }
+});
+
+// @route   DELETE /api/admin/students/:id
+// @desc    Delete a student profile and user
+// @access  Private/Admin
+router.delete('/students/:id', protect, authorize('admin'), async (req, res) => {
+  try {
+    const userId = req.params.id;
+    
+    console.log(`🗑️ Admin ${req.user.userId} deleting student ${userId}`);
+    
+    // Validate ObjectId format
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Invalid student ID format' 
+      });
+    }
+    
+    // Find and delete the student profile
+    const profile = await StudentProfile.findOne({ user: new mongoose.Types.ObjectId(userId) });
+    if (profile) {
+      console.log(`📋 Deleting student profile: ${profile._id}`);
+      await StudentProfile.findByIdAndDelete(profile._id);
+    }
+    
+    // Delete all applications by this student
+    const deletedApps = await Application.deleteMany({ 
+      studentId: new mongoose.Types.ObjectId(userId) 
+    });
+    console.log(`📝 Deleted ${deletedApps.deletedCount} applications`);
+    
+    // Check if user exists before attempting to delete
+    const userExists = await User.findById(new mongoose.Types.ObjectId(userId));
+    if (!userExists) {
+      console.log(`❌ User not found: ${userId}`);
+      return res.status(404).json({ 
+        success: false, 
+        error: 'Student not found. User does not exist in database.' 
+      });
+    }
+    
+    // Delete the user account
+    const deletedUser = await User.findByIdAndDelete(new mongoose.Types.ObjectId(userId));
+    if (!deletedUser) {
+      console.log(`❌ Failed to delete user: ${userId}`);
+      return res.status(500).json({ 
+        success: false, 
+        error: 'Failed to delete user account' 
+      });
+    }
+    console.log(`👤 Deleted user: ${userId}`);
+    
+    return res.json({ 
+      success: true, 
+      message: 'Student deleted successfully' 
+    });
+  } catch (error) {
+    console.error('❌ Delete student error:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: 'Failed to delete student',
       details: error.message 
     });
   }

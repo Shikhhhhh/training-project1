@@ -112,6 +112,20 @@ const studentProfileSchema = new mongoose.Schema(
         default: false,
       },
     },
+    isVerified: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
+    verifiedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      default: null,
+    },
+    verifiedAt: {
+      type: Date,
+      default: null,
+    },
     isComplete: {
       type: Boolean,
       default: false,

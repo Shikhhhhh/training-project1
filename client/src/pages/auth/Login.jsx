@@ -1,33 +1,18 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Form, Input, Button, message, Checkbox } from 'antd';
 import { UserOutlined, LockOutlined, EyeOutlined, EyeInvisibleOutlined } from '@ant-design/icons';
 import { authAPI } from '../../services/api.js';
 import { setAuth } from '../../services/auth.js';
 import { ROUTES, ROLES } from '../../utils/constants.js';
+import { useTheme } from '../../components/common/ThemeProvider';
+import ThemeToggle from '../../components/common/ThemeToggle';
 
 export default function Login() {
   const [loading, setLoading] = useState(false);
   const [form] = Form.useForm();
   const navigate = useNavigate();
-  const [isDark, setIsDark] = useState(() => {
-    return localStorage.getItem('theme') === 'dark' || 
-           window.matchMedia('(prefers-color-scheme: dark)').matches;
-  });
-
-  useEffect(() => {
-    if (isDark) {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
-  }, [isDark]);
-
-  const toggleTheme = () => {
-    const newTheme = !isDark;
-    setIsDark(newTheme);
-    localStorage.setItem('theme', newTheme ? 'dark' : 'light');
-  };
+  const { isDark } = useTheme();
 
   const onFinish = async (values) => {
     setLoading(true);
@@ -56,7 +41,7 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-indigo-900 to-cyan-900 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 flex items-center justify-center px-4 relative overflow-hidden">
+    <div className="min-h-screen bg-slate-900 dark:bg-slate-900 flex items-center justify-center px-4 relative overflow-hidden">
       {/* Animated Background Shapes */}
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute top-20 left-20 w-96 h-96 bg-purple-500/20 rounded-full blur-3xl animate-pulse"></div>
@@ -70,10 +55,10 @@ export default function Login() {
           
           {/* Logo & Title */}
           <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-purple-500 to-cyan-500 rounded-2xl mb-4 shadow-lg">
+            <div className="inline-flex items-center justify-center w-20 h-20 bg-purple-500/30 backdrop-blur-md rounded-2xl mb-4 shadow-lg border border-white/20">
               <UserOutlined className="text-4xl text-white" />
             </div>
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-400 to-cyan-400 bg-clip-text text-transparent mb-2">
+            <h1 className="text-4xl font-bold text-white mb-2">
               Internship Portal
             </h1>
             <p className="text-gray-300 dark:text-gray-400 text-sm">
@@ -186,9 +171,9 @@ export default function Login() {
 
           {/* Divider */}
           <div className="flex items-center my-6">
-            <div className="flex-1 h-px bg-gradient-to-r from-transparent via-white/30 to-transparent"></div>
+            <div className="flex-1 h-px bg-white/20"></div>
             <span className="px-4 text-gray-400 text-sm font-medium">OR</span>
-            <div className="flex-1 h-px bg-gradient-to-r from-transparent via-white/30 to-transparent"></div>
+            <div className="flex-1 h-px bg-white/20"></div>
           </div>
 
           {/* Sign Up Link */}
@@ -205,13 +190,8 @@ export default function Login() {
           </div>
 
           {/* Theme Toggle */}
-          <div className="mt-6 text-center">
-            <button
-              onClick={toggleTheme}
-              className="text-gray-400 hover:text-gray-300 text-sm transition-colors"
-            >
-              {isDark ? '☀️ Light Mode' : '🌙 Dark Mode'}
-            </button>
+          <div className="mt-6 flex justify-center">
+            <ThemeToggle />
           </div>
         </div>
 

@@ -1,11 +1,11 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
-import { ConfigProvider } from 'antd';
+import { ConfigProvider, App as AntApp } from 'antd';
 import Login from './pages/auth/Login.jsx';
 import StudentDashboard from './pages/student/Dashboard.jsx';
 import AdminDashboard from './pages/admin/Dashboard.jsx';
 import ProtectedRoute from './components/common/ProtectedRoute.jsx';
 import { ROUTES, ROLES } from './utils/constants.js';
-import AdminJobs from './pages/admin/Jobs.jsx';
+import AdminJobs from './pages/admin/jobs.jsx';
 import AdminSettings from './pages/admin/Settings.jsx';
 import AdminStudents from './pages/admin/Students.jsx';
 import { getUser } from './services/auth.js';
@@ -57,7 +57,8 @@ export default function App() {
         },
       }}
     >
-      <Routes>
+      <AntApp>
+        <Routes>
         <Route path="/" element={<Navigate to={ROUTES.LOGIN} replace />} />
         <Route path={ROUTES.LOGIN} element={<Login />} />
 
@@ -104,8 +105,9 @@ export default function App() {
         />
           <Route path="/unauthorized" element={<div className="p-12 text-center"><h1>Access Denied</h1></div>} />
 
-        <Route path="*" element={<div className="flex items-center justify-center min-h-screen"><h1 className="text-4xl font-bold text-gray-800">404 Not Found</h1></div>} />
-      </Routes>
+          <Route path="*" element={<div className="flex items-center justify-center min-h-screen"><h1 className="text-4xl font-bold text-gray-800">404 Not Found</h1></div>} />
+        </Routes>
+      </AntApp>
     </ConfigProvider>
   );
 }

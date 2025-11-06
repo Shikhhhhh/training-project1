@@ -38,7 +38,7 @@ const JobCardSkeleton = () => (
 
 export default function StudentJobs() {
   const [jobs, setJobs] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [jobTypeFilter, setJobTypeFilter] = useState('');
   const [locationTypeFilter, setLocationTypeFilter] = useState('');
@@ -136,37 +136,37 @@ export default function StudentJobs() {
   const getJobTypeConfig = (type) => {
     const configs = {
       'internship': { 
-        color: 'bg-gradient-to-r from-blue-500 to-cyan-500', 
+        color: 'bg-blue-500/30 backdrop-blur-sm', 
         text: 'INTERNSHIP',
         icon: '🎓'
       },
       'full-time': { 
-        color: 'bg-gradient-to-r from-emerald-500 to-teal-500', 
+        color: 'bg-emerald-500/30 backdrop-blur-sm', 
         text: 'FULL-TIME',
         icon: '💼'
       },
       'part-time': { 
-        color: 'bg-gradient-to-r from-amber-500 to-orange-500', 
+        color: 'bg-amber-500/30 backdrop-blur-sm', 
         text: 'PART-TIME',
         icon: '⏰'
       },
       'contract': { 
-        color: 'bg-gradient-to-r from-purple-500 to-pink-500', 
+        color: 'bg-purple-500/30 backdrop-blur-sm', 
         text: 'CONTRACT',
         icon: '📋'
       },
     };
-    return configs[type] || { color: 'bg-gray-500', text: type?.toUpperCase() || 'N/A', icon: '📌' };
+    return configs[type] || { color: 'bg-gray-500/30 backdrop-blur-sm', text: type?.toUpperCase() || 'N/A', icon: '📌' };
   };
 
   const hasActiveFilters = searchTerm || jobTypeFilter || locationTypeFilter;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-purple-50/30 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
+    <div className="min-h-screen bg-gray-50 dark:bg-slate-900">
       {/* Hero Section with Glassmorphism */}
-      <div className="relative overflow-hidden bg-gradient-to-r from-purple-600 via-indigo-600 to-cyan-500 rounded-3xl p-8 md:p-12 mb-8 shadow-2xl">
+      <div className="relative overflow-hidden bg-purple-600/20 dark:bg-purple-500/20 backdrop-blur-xl rounded-3xl p-8 md:p-12 mb-8 shadow-2xl border border-purple-300/30 dark:border-purple-400/30">
         {/* Animated Background Shapes */}
-        <div className="absolute inset-0 overflow-hidden">
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
           <div className="absolute -top-20 -right-20 w-96 h-96 bg-white/10 rounded-full blur-3xl animate-pulse"></div>
           <div className="absolute -bottom-20 -left-20 w-96 h-96 bg-cyan-500/20 rounded-full blur-3xl animate-pulse delay-1000"></div>
         </div>
@@ -195,7 +195,7 @@ export default function StudentJobs() {
       </div>
 
       {/* Modern Filter Section with Glassmorphism */}
-      <div className="sticky top-4 z-40 mb-8">
+      <div className="mb-8">
         <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl rounded-2xl border border-gray-200/50 dark:border-slate-700/50 shadow-xl p-6 transition-all duration-300">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
@@ -227,7 +227,7 @@ export default function StudentJobs() {
                 enterButton={
                   <Button 
                     type="primary" 
-                    className="bg-gradient-to-r from-purple-600 to-indigo-600 border-0 hover:from-purple-700 hover:to-indigo-700 transition-all duration-200 hover:scale-105"
+                    className="bg-purple-600/80 dark:bg-purple-500/80 backdrop-blur-md border-0 hover:bg-purple-700/80 dark:hover:bg-purple-600/80 transition-all duration-200 hover:scale-105 text-white"
                   >
                     <SearchOutlined />
                   </Button>
@@ -294,14 +294,14 @@ export default function StudentJobs() {
               type="primary"
               size="large"
               onClick={clearFilters}
-              className="bg-gradient-to-r from-purple-600 to-indigo-600 border-0 hover:from-purple-700 hover:to-indigo-700"
+              className="bg-purple-600/80 dark:bg-purple-500/80 backdrop-blur-md border-0 hover:bg-purple-700/80 dark:hover:bg-purple-600/80 text-white"
             >
               Clear Filters
             </Button>
           )}
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="relative z-10 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {jobs.map((job, index) => {
             const jobTypeConfig = getJobTypeConfig(job.jobType);
             const isApplied = appliedJobs.has(job._id);
@@ -327,7 +327,7 @@ export default function StudentJobs() {
                         {job.companyName}
                       </p>
                     </div>
-                    <div className={`ml-3 px-3 py-1 ${jobTypeConfig.color} rounded-full text-white text-xs font-bold flex items-center gap-1`}>
+                    <div className={`ml-3 px-3 py-1 ${jobTypeConfig.color} border border-white/20 rounded-full text-gray-800 dark:text-white text-xs font-bold flex items-center gap-1`}>
                       <span>{jobTypeConfig.icon}</span>
                       <span>{jobTypeConfig.text}</span>
                     </div>
@@ -398,7 +398,7 @@ export default function StudentJobs() {
                     className={`
                       ${isApplied 
                         ? 'bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-gray-400 border-gray-300 dark:border-slate-600' 
-                        : 'bg-gradient-to-r from-purple-600 to-indigo-600 border-0 text-white hover:from-purple-700 hover:to-indigo-700'
+                        : 'bg-purple-600/80 dark:bg-purple-500/80 backdrop-blur-md border-0 text-white hover:bg-purple-700/80 dark:hover:bg-purple-600/80'
                       }
                       transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] font-semibold h-12 rounded-xl shadow-md hover:shadow-lg
                     `}
@@ -408,7 +408,7 @@ export default function StudentJobs() {
                 </div>
 
                 {/* Hover Glow Effect */}
-                <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-purple-600/0 to-cyan-600/0 group-hover:from-purple-600/5 group-hover:to-cyan-600/5 transition-all duration-300 pointer-events-none"></div>
+                <div className="absolute inset-0 rounded-2xl bg-purple-500/0 group-hover:bg-purple-500/5 transition-all duration-300 pointer-events-none"></div>
               </div>
             );
           })}

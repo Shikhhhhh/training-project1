@@ -11,7 +11,23 @@ export const getUser = () => {
 
 export const setAuth = (token, user) => {
   localStorage.setItem('token', token);
+  // Ensure profilePicture is preserved if it exists
+  const existingUser = getUser();
+  if (existingUser?.profilePicture && !user?.profilePicture) {
+    user = { ...user, profilePicture: existingUser.profilePicture };
+  }
   localStorage.setItem('user', JSON.stringify(user));
+};
+
+// Helper function to update user data
+export const updateUser = (updates) => {
+  const user = getUser();
+  if (user) {
+    const updatedUser = { ...user, ...updates };
+    localStorage.setItem('user', JSON.stringify(updatedUser));
+    return updatedUser;
+  }
+  return null;
 };
 
 export const clearAuth = () => {

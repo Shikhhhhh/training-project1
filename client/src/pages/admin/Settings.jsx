@@ -1,35 +1,28 @@
+// Modern Admin Settings Page - MetaMask Inspired
 import { useState, useEffect } from 'react';
 import { 
-  Layout, Menu, Card, Form, Input, Switch, Button, 
-  Avatar, Dropdown, Tabs, message, Upload, Spin
+  Card, Form, Input, Switch, Button, 
+  Avatar, Tabs, message, Upload
 } from 'antd';
 import {
-  DashboardOutlined,
-  TeamOutlined,
-  FileTextOutlined,
-  SettingOutlined,
   UserOutlined,
-  LogoutOutlined,
   LockOutlined,
   BellOutlined,
   GlobalOutlined,
   UploadOutlined,
 } from '@ant-design/icons';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { clearAuth, getUser, getToken } from '../../services/auth';
+import { getUser, getToken, updateUser } from '../../services/auth';
+import { usersAPI } from '../../services/api';
 import { API_URL } from '../../utils/constants';
+import AdminLayout from '../../components/common/AdminLayout';
 
-const { Header, Sider, Content } = Layout;
 const { TextArea } = Input;
 
 export default function AdminSettings() {
-  const navigate = useNavigate();
-  const location = useLocation();
   const user = getUser();
-  const [collapsed, setCollapsed] = useState(false);
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const [avatarUrl, setAvatarUrl] = useState(null);
+  const [avatarUrl, setAvatarUrl] = useState(user?.profilePicture || null);
 
   // Load avatar from user data on mount
   useEffect(() => {
@@ -40,47 +33,56 @@ export default function AdminSettings() {
 
   // Custom upload handler
   const handleAvatarUpload = async (options) => {
-  const { file, onSuccess, onError } = options;
+    const { file, onSuccess, onError } = options;
 
-  try {
-    setUploading(true);
+    try {
+      setUploading(true);
 
-    const formData = new FormData();
-    formData.append('profilePicture', file);
+      const formData = new FormData();
+      formData.append('profilePicture', file);
 
-    const response = await fetch(`${API_URL}/upload/profile-picture`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${getToken()}`,
-      },
-      body: formData,
-    });
+      const response = await fetch(`${API_URL}/upload/profile-picture`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${getToken()}`,
+        },
+        body: formData,
+      });
 
-    const data = await response.json();
-    console.log('📸 Upload response:', data); // ✅ Debug log
+      const data = await response.json();
+      console.log('📸 Upload response:', data);
 
-    if (response.ok && data.success) {
-      console.log('✅ Setting avatar URL to:', data.url); // ✅ Debug log
-      setAvatarUrl(data.url);
-      
-      // Update user in localStorage
-      const updatedUser = { ...user, profilePicture: data.url };
-      localStorage.setItem('user', JSON.stringify(updatedUser));
-      console.log('💾 Updated localStorage:', updatedUser); // ✅ Debug log
-      
-      message.success('Profile picture uploaded successfully!');
-      onSuccess(data, file);
-    } else {
-      throw new Error(data.error || 'Upload failed');
+      if (response.ok && data.success) {
+        console.log('✅ Setting avatar URL to:', data.url);
+        setAvatarUrl(data.url);
+        
+        // Fetch updated user data from server to get the latest profile picture
+        try {
+          const userData = await usersAPI.getMe();
+          if (userData.success && userData.user) {
+            // Update user in localStorage with fresh data from server
+            updateUser(userData.user);
+            console.log('💾 Updated localStorage with fresh user data:', userData.user);
+          }
+        } catch (fetchError) {
+          console.warn('⚠️ Failed to fetch updated user data, using uploaded URL:', fetchError);
+          // Fallback: update with the URL we received
+          updateUser({ profilePicture: data.url });
+        }
+        
+        message.success('Profile picture uploaded successfully!');
+        onSuccess(data, file);
+      } else {
+        throw new Error(data.error || 'Upload failed');
+      }
+    } catch (error) {
+      console.error('❌ Upload error:', error);
+      message.error(error.message || 'Failed to upload image');
+      onError(error);
+    } finally {
+      setUploading(false);
     }
-  } catch (error) {
-    console.error('❌ Upload error:', error);
-    message.error(error.message || 'Failed to upload image');
-    onError(error);
-  } finally {
-    setUploading(false);
-  }
-};
+  };
 
   // Validate file before upload
   const beforeUpload = (file) => {
@@ -138,31 +140,6 @@ export default function AdminSettings() {
     }
   };
 
-  const menuItems = [
-    { key: '/admin/dashboard', icon: <DashboardOutlined />, label: 'Dashboard' },
-    { key: '/admin/students', icon: <TeamOutlined />, label: 'Students' },
-    { key: '/admin/jobs', icon: <FileTextOutlined />, label: 'Jobs' },
-    { key: '/admin/settings', icon: <SettingOutlined />, label: 'Settings' },
-  ];
-
-  const handleLogout = () => {
-    clearAuth();
-    navigate('/login');
-  };
-
-  const userMenu = {
-    items: [
-      { key: 'profile', label: 'Profile', icon: <UserOutlined /> },
-      { 
-        key: 'logout', 
-        label: 'Logout', 
-        icon: <LogoutOutlined />, 
-        danger: true, 
-        onClick: handleLogout 
-      },
-    ],
-  };
-
   // Define tab items
   const tabItems = [
     {
@@ -173,7 +150,7 @@ export default function AdminSettings() {
         </span>
       ),
       children: (
-        <Card>
+        <Card className="bg-white dark:bg-slate-800/80 border-gray-200 dark:border-slate-700">
           <Form
             layout="vertical"
             onFinish={handleProfileUpdate}
@@ -188,7 +165,7 @@ export default function AdminSettings() {
                 size={100} 
                 src={avatarUrl}
                 icon={<UserOutlined />} 
-                className="bg-purple-600" 
+                className="bg-purple-500/30 backdrop-blur-md shadow-lg border border-purple-400/30"
               />
               
               <div>
@@ -202,37 +179,51 @@ export default function AdminSettings() {
                     icon={<UploadOutlined />}
                     loading={uploading}
                     type="primary"
-                    className="bg-purple-600 hover:bg-purple-700"
+                    className="bg-purple-600/80 dark:bg-purple-500/80 backdrop-blur-md border-0 hover:bg-purple-700/80 dark:hover:bg-purple-600/80 shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105 text-white"
+                    style={{ borderRadius: '12px' }}
                   >
                     {uploading ? 'Uploading...' : 'Change Avatar'}
                   </Button>
                 </Upload>
-                <p className="text-xs text-gray-500 mt-2">Max 5MB, JPG/PNG</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">Max 5MB, JPG/PNG</p>
               </div>
             </div>
 
             <Form.Item 
               name="name" 
-              label="Full Name" 
+              label={<span className="text-gray-700 dark:text-gray-300 font-medium">Full Name</span>}
               rules={[{ required: true, message: 'Please enter your name' }]}
             >
-              <Input placeholder="Your full name" />
+              <Input 
+                placeholder="Your full name" 
+                className="modern-input"
+                style={{ borderRadius: '12px' }}
+              />
             </Form.Item>
 
             <Form.Item 
               name="email" 
-              label="Email" 
+              label={<span className="text-gray-700 dark:text-gray-300 font-medium">Email</span>}
               rules={[{ required: true, type: 'email', message: 'Please enter valid email' }]}
             >
-              <Input disabled />
+              <Input disabled className="modern-input" style={{ borderRadius: '12px' }} />
             </Form.Item>
 
-            <Form.Item name="department" label="Department">
-              <Input placeholder="Your department" />
+            <Form.Item 
+              name="department" 
+              label={<span className="text-gray-700 dark:text-gray-300 font-medium">Department</span>}
+            >
+              <Input placeholder="Your department" className="modern-input" style={{ borderRadius: '12px' }} />
             </Form.Item>
 
             <Form.Item>
-              <Button type="primary" htmlType="submit" loading={loading} className="bg-purple-600 hover:bg-purple-700">
+              <Button 
+                type="primary" 
+                htmlType="submit" 
+                loading={loading}
+                className="bg-purple-600/80 dark:bg-purple-500/80 backdrop-blur-md border-0 hover:bg-purple-700/80 dark:hover:bg-purple-600/80 shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105 text-white"
+                style={{ borderRadius: '12px', padding: '0 24px', height: '44px' }}
+              >
                 Save Changes
               </Button>
             </Form.Item>
@@ -248,30 +239,38 @@ export default function AdminSettings() {
         </span>
       ),
       children: (
-        <Card>
+        <Card className="bg-white dark:bg-slate-800/80 border-gray-200 dark:border-slate-700">
           <Form layout="vertical" onFinish={handlePasswordChange}>
             <Form.Item
               name="currentPassword"
-              label="Current Password"
+              label={<span className="text-gray-700 dark:text-gray-300 font-medium">Current Password</span>}
               rules={[{ required: true, message: 'Please enter current password' }]}
             >
-              <Input.Password placeholder="Enter current password" />
+              <Input.Password 
+                placeholder="Enter current password" 
+                className="modern-input"
+                style={{ borderRadius: '12px' }}
+              />
             </Form.Item>
 
             <Form.Item
               name="newPassword"
-              label="New Password"
+              label={<span className="text-gray-700 dark:text-gray-300 font-medium">New Password</span>}
               rules={[
                 { required: true, message: 'Please enter new password' },
                 { min: 6, message: 'Password must be at least 6 characters' },
               ]}
             >
-              <Input.Password placeholder="Enter new password" />
+              <Input.Password 
+                placeholder="Enter new password" 
+                className="modern-input"
+                style={{ borderRadius: '12px' }}
+              />
             </Form.Item>
 
             <Form.Item
               name="confirmPassword"
-              label="Confirm New Password"
+              label={<span className="text-gray-700 dark:text-gray-300 font-medium">Confirm New Password</span>}
               dependencies={['newPassword']}
               rules={[
                 { required: true, message: 'Please confirm password' },
@@ -285,11 +284,21 @@ export default function AdminSettings() {
                 }),
               ]}
             >
-              <Input.Password placeholder="Confirm password" />
+              <Input.Password 
+                placeholder="Confirm password" 
+                className="modern-input"
+                style={{ borderRadius: '12px' }}
+              />
             </Form.Item>
 
             <Form.Item>
-              <Button type="primary" htmlType="submit" loading={loading} className="bg-purple-600 hover:bg-purple-700">
+              <Button 
+                type="primary" 
+                htmlType="submit" 
+                loading={loading}
+                className="bg-purple-600/80 dark:bg-purple-500/80 backdrop-blur-md border-0 hover:bg-purple-700/80 dark:hover:bg-purple-600/80 shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105 text-white"
+                style={{ borderRadius: '12px', padding: '0 24px', height: '44px' }}
+              >
                 Change Password
               </Button>
             </Form.Item>
@@ -305,7 +314,7 @@ export default function AdminSettings() {
         </span>
       ),
       children: (
-        <Card>
+        <Card className="bg-white dark:bg-slate-800/80 border-gray-200 dark:border-slate-700">
           <Form
             layout="vertical"
             onFinish={handleSystemSettings}
@@ -317,7 +326,7 @@ export default function AdminSettings() {
           >
             <Form.Item 
               name="emailNotifications" 
-              label="Email Notifications" 
+              label={<span className="text-gray-700 dark:text-gray-300 font-medium">Email Notifications</span>}
               valuePropName="checked"
             >
               <Switch />
@@ -325,7 +334,7 @@ export default function AdminSettings() {
 
             <Form.Item 
               name="jobAlerts" 
-              label="New Job Alerts" 
+              label={<span className="text-gray-700 dark:text-gray-300 font-medium">New Job Alerts</span>}
               valuePropName="checked"
             >
               <Switch />
@@ -333,14 +342,20 @@ export default function AdminSettings() {
 
             <Form.Item 
               name="applicationUpdates" 
-              label="Application Status Updates" 
+              label={<span className="text-gray-700 dark:text-gray-300 font-medium">Application Status Updates</span>}
               valuePropName="checked"
             >
               <Switch />
             </Form.Item>
 
             <Form.Item>
-              <Button type="primary" htmlType="submit" loading={loading} className="bg-purple-600 hover:bg-purple-700">
+              <Button 
+                type="primary" 
+                htmlType="submit" 
+                loading={loading}
+                className="bg-purple-600/80 dark:bg-purple-500/80 backdrop-blur-md border-0 hover:bg-purple-700/80 dark:hover:bg-purple-600/80 shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105 text-white"
+                style={{ borderRadius: '12px', padding: '0 24px', height: '44px' }}
+              >
                 Save Preferences
               </Button>
             </Form.Item>
@@ -356,7 +371,7 @@ export default function AdminSettings() {
         </span>
       ),
       children: (
-        <Card>
+        <Card className="bg-white dark:bg-slate-800/80 border-gray-200 dark:border-slate-700">
           <Form
             layout="vertical"
             onFinish={handleSystemSettings}
@@ -368,15 +383,15 @@ export default function AdminSettings() {
           >
             <Form.Item 
               name="siteName" 
-              label="Site Name" 
+              label={<span className="text-gray-700 dark:text-gray-300 font-medium">Site Name</span>}
               rules={[{ required: true, message: 'Please enter site name' }]}
             >
-              <Input placeholder="Site name" />
+              <Input placeholder="Site name" className="modern-input" style={{ borderRadius: '12px' }} />
             </Form.Item>
 
             <Form.Item 
               name="maintenanceMode" 
-              label="Maintenance Mode" 
+              label={<span className="text-gray-700 dark:text-gray-300 font-medium">Maintenance Mode</span>}
               valuePropName="checked"
             >
               <Switch />
@@ -384,14 +399,20 @@ export default function AdminSettings() {
 
             <Form.Item 
               name="allowRegistration" 
-              label="Allow New Registrations" 
+              label={<span className="text-gray-700 dark:text-gray-300 font-medium">Allow New Registrations</span>}
               valuePropName="checked"
             >
               <Switch />
             </Form.Item>
 
             <Form.Item>
-              <Button type="primary" htmlType="submit" loading={loading} className="bg-purple-600 hover:bg-purple-700">
+              <Button 
+                type="primary" 
+                htmlType="submit" 
+                loading={loading}
+                className="bg-purple-600/80 dark:bg-purple-500/80 backdrop-blur-md border-0 hover:bg-purple-700/80 dark:hover:bg-purple-600/80 shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105 text-white"
+                style={{ borderRadius: '12px', padding: '0 24px', height: '44px' }}
+              >
                 Save System Settings
               </Button>
             </Form.Item>
@@ -402,55 +423,23 @@ export default function AdminSettings() {
   ];
 
   return (
-    <Layout className="min-h-screen">
-      <Sider
-        collapsible
-        collapsed={collapsed}
-        onCollapse={setCollapsed}
-        className="bg-gradient-to-b from-purple-700 to-purple-900"
-        width={250}
-      >
-        <div className="p-6 text-center">
-          <h1 className="text-white text-2xl font-bold">
-            {collapsed ? 'IP' : 'Internship Portal'}
-          </h1>
+    <AdminLayout>
+      <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl rounded-2xl border border-gray-200/50 dark:border-slate-700/50 shadow-xl p-6 md:p-8">
+        <div className="mb-6">
+          <h3 className="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-1">
+            Settings
+          </h3>
+          <p className="text-gray-500 dark:text-gray-400">
+            Manage your account settings and preferences
+          </p>
         </div>
-        <Menu
-          theme="dark"
-          mode="inline"
-          selectedKeys={[location.pathname]}
-          items={menuItems}
-          onClick={({ key }) => navigate(key)}
-          className="bg-transparent border-0"
+        <Tabs 
+          items={tabItems} 
+          defaultActiveKey="profile"
+          type="card"
+          className="modern-tabs"
         />
-      </Sider>
-
-      <Layout>
-        <Header className="bg-white shadow-md px-6 flex justify-between items-center">
-          <h2 className="text-xl font-semibold text-gray-800">Settings</h2>
-          <Dropdown menu={userMenu} placement="bottomRight">
-            <div className="flex items-center gap-3 cursor-pointer">
-              <Avatar 
-                size={40}
-                src={avatarUrl}
-                icon={<UserOutlined />} 
-                className="bg-purple-600" 
-              />
-              <span className="text-gray-700">{user?.name || 'Admin'}</span>
-            </div>
-          </Dropdown>
-        </Header>
-
-        <Content className="p-6 bg-gray-50">
-          <div className="bg-white rounded-xl shadow-lg p-6">
-            <Tabs 
-              items={tabItems} 
-              defaultActiveKey="profile"
-              type="card"
-            />
-          </div>
-        </Content>
-      </Layout>
-    </Layout>
+      </div>
+    </AdminLayout>
   );
 }

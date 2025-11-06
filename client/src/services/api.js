@@ -19,7 +19,13 @@ const handleResponse = async (response) => {
   }
   
   if (!response.ok) {
-    throw new Error(data.error || 'Request failed');
+    const errorMessage = data.error || data.message || `Request failed with status ${response.status}`;
+    console.error('API Error:', {
+      status: response.status,
+      error: errorMessage,
+      details: data.details || data
+    });
+    throw new Error(errorMessage);
   }
   
   return data;
@@ -148,6 +154,14 @@ export const jobAPI = {
     });
     return handleResponse(response);
   },
+
+  // Recruiter/admin fallback: get applications for a job (public recruiter endpoint)
+  getJobApplicationsRecruiter: async (jobId) => {
+    const response = await fetch(`${API_URL}/jobs/${jobId}/applications`, {
+      headers: getHeaders(),
+    });
+    return handleResponse(response);
+  },
 };
 
 // ============================================
@@ -174,6 +188,39 @@ export const adminAPI = {
   // Get specific student
   getStudent: async (id) => {
     const response = await fetch(`${API_URL}/admin/students/${id}`, {
+      headers: getHeaders(),
+    });
+    return handleResponse(response);
+  },
+
+  // Verify resume for a student (toggle)
+  verifyResume: async (userId, verified) => {
+    const response = await fetch(`${API_URL}/admin/students/${userId}/verify-resume`, {
+      method: 'PATCH',
+      headers: getHeaders(),
+      body: JSON.stringify({ verified }),
+    });
+    return handleResponse(response);
+  },
+
+  // Verify/unverify a student (general verification)
+  verifyStudent: async (userId, verified) => {
+    const response = await fetch(`${API_URL}/admin/students/${userId}/verify`, {
+      method: 'PATCH',
+      headers: getHeaders(),
+      body: JSON.stringify({ verified }),
+    });
+    return handleResponse(response);
+  },
+
+  // Delete a student
+  deleteStudent: async (userId) => {
+    if (!userId) {
+      throw new Error('Student ID is required');
+    }
+    console.log('Calling delete student API with ID:', userId);
+    const response = await fetch(`${API_URL}/admin/students/${userId}`, {
+      method: 'DELETE',
       headers: getHeaders(),
     });
     return handleResponse(response);
@@ -210,6 +257,10 @@ export const adminAPI = {
 
   // Delete job
   deleteJob: async (id) => {
+    if (!id) {
+      throw new Error('Job ID is required');
+    }
+    console.log('Calling delete job API with ID:', id);
     const response = await fetch(`${API_URL}/jobs/${id}`, {
       method: 'DELETE',
       headers: getHeaders(),

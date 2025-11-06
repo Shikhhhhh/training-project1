@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';                                                                                                      
 import { Layout, Menu, Avatar, Dropdown, Badge, Spin, message } from 'antd';
 import {
   UserOutlined,
@@ -9,16 +9,20 @@ import {
   BellOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
-  TrophyOutlined,
-  RocketOutlined,
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
-import { studentAPI } from '../../services/api';
-import { clearAuth, getUser } from '../../services/auth';
+import { studentAPI, usersAPI } from '../../services/api';
+import { clearAuth, getUser, updateUser } from '../../services/auth';
+import { useTheme } from '../../components/common/ThemeProvider';
+import ThemeToggle from '../../components/common/ThemeToggle';
 import ProfileView from '../../components/student/ProfileView.jsx';
 import ProfileForm from '../../components/student/ProfileForm.jsx';
 import StudentJobs from './Jobs.jsx';
-import { useTheme } from '../../components/common/ThemeProvider';
+import { List, Tag } from 'antd';
+import dayjs from 'dayjs';
+
+
+// ... rest of the component
 
 const { Header, Sider, Content } = Layout;
 
@@ -28,12 +32,25 @@ export default function StudentDashboard() {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [editMode, setEditMode] = useState(false);
+  const [user, setUser] = useState(getUser());
   const navigate = useNavigate();
-  const user = getUser();
-  const { isDark, toggleTheme } = useTheme();
+  const { isDark } = useTheme();
 
   useEffect(() => {
     fetchProfile();
+    // Refresh user data on mount to get latest avatar
+    const refreshUserData = async () => {
+      try {
+        const userData = await usersAPI.getMe();
+        if (userData.success && userData.user) {
+          updateUser(userData.user);
+          setUser(userData.user);
+        }
+      } catch (error) {
+        console.warn('Failed to refresh user data:', error);
+      }
+    };
+    refreshUserData();
   }, []);
 
   const fetchProfile = async () => {
@@ -65,6 +82,9 @@ export default function StudentDashboard() {
       </Menu.Item>
       <Menu.Item key="settings" icon={<SettingOutlined />}>
         Settings
+      </Menu.Item>
+      <Menu.Item key= "student-jobs" icon= {<FileTextOutlined />}>
+      Jobs
       </Menu.Item>
       <Menu.Divider />
       <Menu.Item key="logout" icon={<LogoutOutlined />} onClick={handleLogout} danger>
@@ -99,139 +119,96 @@ export default function StudentDashboard() {
       );
     }
 
+    if (currentPage === 'applications') {
+      return <StudentApplications />;
+    }
+
     if (currentPage === 'jobs') {
       return <StudentJobs />;
     }
 
-    // Modern Overview Dashboard
+    // Overview Dashboard
     return (
-      <div className="space-y-8 animate-fade-in">
-        {/* Hero Welcome Section */}
-        <div className="relative overflow-hidden bg-gradient-to-r from-purple-600 via-indigo-600 to-cyan-500 rounded-3xl p-8 md:p-10 text-white shadow-2xl">
-          {/* Animated Background */}
-          <div className="absolute inset-0 overflow-hidden">
-            <div className="absolute -top-20 -right-20 w-96 h-96 bg-white/10 rounded-full blur-3xl animate-pulse"></div>
-            <div className="absolute -bottom-20 -left-20 w-96 h-96 bg-cyan-500/20 rounded-full blur-3xl animate-pulse delay-1000"></div>
-          </div>
-          
-          <div className="relative z-10">
-            <div className="flex items-center gap-4 mb-4">
-              <div className="w-16 h-16 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center">
-                <RocketOutlined className="text-3xl text-white" />
-              </div>
-              <div>
-                <h1 className="text-4xl md:text-5xl font-bold mb-2">
-                  Welcome back, {user?.name || 'Student'}! 👋
-                </h1>
-                <p className="text-purple-100 text-lg">
-                  {profile
-                    ? `Your profile is ${profile.completionPercentage || 0}% complete`
-                    : 'Complete your profile to unlock opportunities'}
-                </p>
-              </div>
-            </div>
-            
-            {profile && (
-              <div className="flex items-center gap-4 mt-6">
-                <div className="px-4 py-2 bg-white/20 backdrop-blur-md rounded-xl text-white font-semibold">
-                  {profile.skills?.length || 0} Skills
-                </div>
-                <div className="px-4 py-2 bg-white/20 backdrop-blur-md rounded-xl text-white font-semibold">
-                  {profile.cgpa ? `${profile.cgpa} CGPA` : 'No CGPA'}
-                </div>
-              </div>
-            )}
-          </div>
+      <div className="space-y-6">
+        {/* Welcome Banner */}
+        <div className="bg-purple-600/20 dark:bg-purple-500/20 backdrop-blur-xl rounded-2xl p-8 shadow-lg border border-purple-300/30 dark:border-purple-400/30">
+          <h1 className="text-3xl font-bold mb-2 text-gray-800 dark:text-white">
+            Welcome back, {user?.name || 'Student'}! 👋
+          </h1>
+          <p className="text-gray-700 dark:text-gray-200">
+            {profile
+              ? `Your profile is ${profile.completionPercentage || 0}% complete`
+              : 'Complete your profile to get started'}
+          </p>
         </div>
 
-        {/* Modern Stats Grid */}
+        {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* Applications Card */}
-          <div className="group relative bg-white dark:bg-slate-800/80 backdrop-blur-sm rounded-2xl p-6 border border-gray-200 dark:border-slate-700 shadow-md hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+          <div className="bg-white dark:bg-slate-800/80 rounded-xl p-6 shadow-md hover:shadow-lg transition-all border border-gray-200 dark:border-slate-700">
             <div className="flex items-center justify-between mb-4">
-              <div className="w-14 h-14 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
-                <FileTextOutlined className="text-2xl text-white" />
+              <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                <FileTextOutlined className="text-2xl text-blue-600" />
               </div>
               <Badge count={0} showZero className="bg-blue-500" />
             </div>
-            <h3 className="text-gray-500 dark:text-gray-400 text-sm font-medium mb-2">Applications</h3>
-            <p className="text-4xl font-bold text-gray-800 dark:text-gray-100">0</p>
-            <div className="mt-4 h-1 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"></div>
+            <h3 className="text-gray-600 dark:text-gray-300 text-sm font-medium mb-1">Applications</h3>
+            <p className="text-3xl font-bold text-gray-800 dark:text-gray-100">0</p>
           </div>
 
-          {/* Profile Status Card */}
-          <div className="group relative bg-white dark:bg-slate-800/80 backdrop-blur-sm rounded-2xl p-6 border border-gray-200 dark:border-slate-700 shadow-md hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+          <div className="bg-white dark:bg-slate-800/80 rounded-xl p-6 shadow-md hover:shadow-lg transition-all border border-gray-200 dark:border-slate-700">
             <div className="flex items-center justify-between mb-4">
-              <div className="w-14 h-14 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
-                <TrophyOutlined className="text-2xl text-white" />
+              <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                <UserOutlined className="text-2xl text-green-600" />
               </div>
               <Badge
                 count={profile?.isComplete ? 'Complete' : 'Pending'}
-                style={{ 
-                  backgroundColor: profile?.isComplete ? '#10B981' : '#F59E0B',
-                  fontSize: '10px',
-                  padding: '0 8px',
-                  height: '20px',
-                  lineHeight: '20px',
-                }}
+                style={{ backgroundColor: profile?.isComplete ? '#52c41a' : '#faad14' }}
               />
             </div>
-            <h3 className="text-gray-500 dark:text-gray-400 text-sm font-medium mb-2">Profile Status</h3>
-            <p className="text-4xl font-bold text-gray-800 dark:text-gray-100">
+            <h3 className="text-gray-600 dark:text-gray-300 text-sm font-medium mb-1">Profile Status</h3>
+            <p className="text-3xl font-bold text-gray-800 dark:text-gray-100">
               {profile?.completionPercentage || 0}%
             </p>
-            <div className="mt-4">
-              <div className="w-full h-2 bg-gray-200 dark:bg-slate-700 rounded-full overflow-hidden">
-                <div 
-                  className="h-full bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full transition-all duration-500"
-                  style={{ width: `${profile?.completionPercentage || 0}%` }}
-                ></div>
-              </div>
-            </div>
           </div>
 
-          {/* Skills Card */}
-          <div className="group relative bg-white dark:bg-slate-800/80 backdrop-blur-sm rounded-2xl p-6 border border-gray-200 dark:border-slate-700 shadow-md hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+          <div className="bg-white dark:bg-slate-800/80 rounded-xl p-6 shadow-md hover:shadow-lg transition-all border border-gray-200 dark:border-slate-700">
             <div className="flex items-center justify-between mb-4">
-              <div className="w-14 h-14 bg-gradient-to-br from-purple-500 to-indigo-500 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
-                <DashboardOutlined className="text-2xl text-white" />
+              <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+                <DashboardOutlined className="text-2xl text-purple-600" />
               </div>
             </div>
-            <h3 className="text-gray-500 dark:text-gray-400 text-sm font-medium mb-2">Skills Added</h3>
-            <p className="text-4xl font-bold text-gray-800 dark:text-gray-100">
+            <h3 className="text-gray-600 dark:text-gray-300 text-sm font-medium mb-1">Skills Added</h3>
+            <p className="text-3xl font-bold text-gray-800 dark:text-gray-100">
               {profile?.skills?.length || 0}
             </p>
-            <div className="mt-4 h-1 bg-gradient-to-r from-purple-500 to-indigo-500 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"></div>
           </div>
         </div>
 
-        {/* Quick Actions - Profile Completion Alert */}
+        {/* Quick Actions */}
         {!profile && (
-          <div className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 border-l-4 border-amber-400 dark:border-amber-500 p-6 rounded-2xl shadow-lg">
-            <div className="flex items-start gap-4">
+          <div className="bg-yellow-50 dark:bg-slate-800/60 border-l-4 border-yellow-400 dark:border-slate-700 p-6 rounded-lg">
+            <div className="flex">
               <div className="flex-shrink-0">
-                <div className="w-12 h-12 bg-amber-400 dark:bg-amber-500 rounded-xl flex items-center justify-center">
-                  <svg className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                  </svg>
-                </div>
+                <svg className="h-6 w-6 text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
               </div>
-              <div className="flex-1">
-                <h3 className="text-lg font-bold text-amber-900 dark:text-amber-100 mb-2">
-                  Complete Your Profile
-                </h3>
-                <p className="text-amber-800 dark:text-amber-200 mb-4">
-                  Create your profile to start applying for internships and job opportunities.
-                </p>
-                <button
-                  onClick={() => {
-                    setCurrentPage('profile');
-                    setEditMode(true);
-                  }}
-                  className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-amber-500 to-orange-500 text-white font-semibold rounded-xl hover:from-amber-600 hover:to-orange-600 transition-all duration-200 hover:scale-105 shadow-md hover:shadow-lg"
-                >
-                  Create Profile Now
-                </button>
+              <div className="ml-3">
+                <h3 className="text-sm font-medium text-yellow-800 dark:text-gray-200">Complete Your Profile</h3>
+                <div className="mt-2 text-sm text-yellow-700 dark:text-gray-300">
+                  <p>You need to create your profile before applying for internships.</p>
+                </div>
+                <div className="mt-4">
+                  <button
+                    onClick={() => {
+                      setCurrentPage('profile');
+                      setEditMode(true);
+                    }}
+                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-yellow-800 bg-yellow-100 hover:bg-yellow-200 dark:text-gray-200 dark:bg-slate-700 dark:hover:bg-slate-600 focus:outline-none transition"
+                  >
+                    Create Profile Now
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -242,22 +219,17 @@ export default function StudentDashboard() {
 
   return (
     <Layout className="min-h-screen bg-gray-50 dark:bg-slate-900 transition-colors duration-200">
-      {/* Modern Sidebar */}
+      {/* Sidebar */}
       <Sider
         trigger={null}
         collapsible
         collapsed={collapsed}
         breakpoint="lg"
-        className="shadow-2xl"
-        style={{ 
-          background: 'linear-gradient(180deg, #7C3AED 0%, #6D28D9 50%, #5B21B6 100%)',
-        }}
+        className="shadow-2xl bg-slate-800/90 dark:bg-slate-900/90 backdrop-blur-xl border-r border-white/10 dark:border-slate-700/50"
       >
         <div className="h-16 flex items-center justify-center border-b border-white/10">
           {!collapsed ? (
-            <h1 className="text-white text-xl font-bold bg-gradient-to-r from-white to-purple-200 bg-clip-text text-transparent">
-              Student Portal
-            </h1>
+            <h1 className="text-white text-xl font-bold">Student Portal</h1>
           ) : (
             <UserOutlined className="text-white text-2xl" />
           )}
@@ -290,23 +262,22 @@ export default function StudentDashboard() {
               label: 'Applications',
             },
           ]}
-          style={{ backgroundColor: 'transparent' }}
         />
       </Sider>
 
       {/* Main Layout */}
       <Layout>
-        {/* Modern Header */}
-        <Header className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl px-6 flex items-center justify-between shadow-sm sticky top-0 z-50 border-b border-gray-200/50 dark:border-slate-700/50">
+        {/* Header */}
+        <Header className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl px-6 flex items-center justify-between shadow-sm border-b border-gray-200/50 dark:border-slate-700/50">
           <div className="flex items-center">
             {collapsed ? (
               <MenuUnfoldOutlined
-                className="text-xl cursor-pointer hover:text-purple-600 dark:hover:text-purple-400 transition-colors"
+                className="text-xl cursor-pointer hover:text-blue-500 transition"
                 onClick={() => setCollapsed(!collapsed)}
               />
             ) : (
               <MenuFoldOutlined
-                className="text-xl cursor-pointer hover:text-purple-600 dark:hover:text-purple-400 transition-colors"
+                className="text-xl cursor-pointer hover:text-blue-500 transition"
                 onClick={() => setCollapsed(!collapsed)}
               />
             )}
@@ -317,25 +288,19 @@ export default function StudentDashboard() {
               <BellOutlined className="text-xl text-gray-600 dark:text-gray-400 cursor-pointer hover:text-purple-600 dark:hover:text-purple-400 transition-colors" />
             </Badge>
 
-            <button
-              onClick={toggleTheme}
-              className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors"
-              aria-label="Toggle theme"
-            >
-              {isDark ? '☀️' : '🌙'}
-            </button>
+            <ThemeToggle />
 
             <Dropdown overlay={userMenu} trigger={['click']} placement="bottomRight">
               <div className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition">
-                <div className="text-right hidden md:block">
+                <div className="text-right">
                   <p className="text-sm font-medium text-gray-800 dark:text-gray-200">{user?.name || 'Student'}</p>
                   <p className="text-xs text-gray-500 dark:text-gray-400">{user?.email}</p>
                 </div>
                 <Avatar
                   size={40}
-                  icon={<UserOutlined />}
                   src={user?.profilePicture}
-                  className="border-2 border-purple-500 shadow-md"
+                  icon={<UserOutlined />}
+                  className="bg-purple-500/30 backdrop-blur-md border-2 border-purple-400/50 shadow-md"
                 />
               </div>
             </Dropdown>
@@ -343,10 +308,90 @@ export default function StudentDashboard() {
         </Header>
 
         {/* Content */}
-        <Content className="m-6">
+        <Content className="p-6 md:p-8 bg-gray-50 dark:bg-slate-900 transition-colors duration-200">
           {renderContent()}
         </Content>
       </Layout>
     </Layout>
   );
 }
+
+function StudentApplications() {
+  const [loading, setLoading] = useState(true);
+  const [applications, setApplications] = useState([]);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const data = await studentAPI.getMyApplications();
+        if (data && data.success) {
+          setApplications(Array.isArray(data.applications) ? data.applications : []);
+        } else if (Array.isArray(data)) {
+          // Fallback if API returns an array directly
+          setApplications(data);
+        } else {
+          setApplications([]);
+        }
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Spin size="large" />
+      </div>
+    );
+  }
+
+  if (!applications || applications.length === 0) {
+    return (
+      <div className="bg-white dark:bg-slate-800/80 rounded-2xl p-8 text-center border border-gray-200 dark:border-slate-700">
+        <p className="text-gray-600 dark:text-gray-300">You haven't applied to any jobs yet.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative z-10 bg-white dark:bg-slate-800/80 rounded-2xl p-6 border border-gray-200 dark:border-slate-700">
+      <div className="mb-4">
+        <h3 className="text-xl font-bold text-gray-800 dark:text-gray-100">My Applications</h3>
+        <p className="text-sm text-gray-500 dark:text-gray-400">Total: {applications.length}</p>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {applications.map((app, idx) => {
+          const job = app.jobId || app.job || {};
+          const statusText = (app.status || app.stage || 'pending').toUpperCase();
+          return (
+            <div key={app._id || `${job._id || idx}`}
+              className="group relative bg-white dark:bg-slate-800 rounded-2xl border border-gray-200 dark:border-slate-700 overflow-hidden shadow-md hover:shadow-2xl transition-all duration-300 hover:-translate-y-1">
+              <div className="h-1 bg-purple-500/50 dark:bg-purple-400/50 w-full"></div>
+              <div className="p-6">
+                <div className="flex items-start justify-between mb-3">
+                  <div className="min-w-0">
+                    <h4 className="text-lg font-semibold text-gray-900 dark:text-gray-100 truncate">{job.title || 'Job'}</h4>
+                    <p className="text-sm text-purple-600 dark:text-purple-400 font-medium truncate">{job.companyName || 'Company'}</p>
+                  </div>
+                  <Tag color={statusText === 'PENDING' || statusText === 'APPLIED' ? 'orange' : 'green'} className="rounded-full">
+                    {statusText}
+                  </Tag>
+                </div>
+                <div className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                  Applied on {dayjs(app.appliedAt || app.createdAt).format('MMM DD, YYYY')}
+                </div>
+                <div className="flex flex-wrap gap-2 text-xs text-gray-500 dark:text-gray-400">
+                  {job.location && <span className="px-2 py-1 bg-gray-100 dark:bg-slate-700 rounded-md">{job.location}</span>}
+                  {job.jobType && <span className="px-2 py-1 bg-gray-100 dark:bg-slate-700 rounded-md">{job.jobType}</span>}
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+

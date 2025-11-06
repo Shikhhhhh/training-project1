@@ -59,7 +59,7 @@ router.post('/profile-picture', protect, upload.single('profilePicture'), async 
             { quality: 'auto' },
           ],
         },
-        (error, result) => {
+        async (error, result) => {
           if (error) {
             console.error('❌ Cloudinary upload error:', error);
             reject(error);
@@ -70,6 +70,17 @@ router.post('/profile-picture', protect, upload.single('profilePicture'), async 
               publicId: result.public_id,
               size: result.bytes,
             });
+
+            // Update user's profilePicture in database
+            try {
+              await User.findByIdAndUpdate(req.user.userId, {
+                profilePicture: result.secure_url,
+              });
+              console.log('✅ User profile picture updated in database');
+            } catch (dbError) {
+              console.error('⚠️ Failed to update user in database:', dbError);
+              // Continue anyway - at least the upload succeeded
+            }
 
             res.json({
               success: true,

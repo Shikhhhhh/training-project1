@@ -1,40 +1,24 @@
 import { useState, useEffect } from 'react';
 import { 
-  Layout, Menu, Table, Button, Modal, Form, Input, InputNumber, 
-  Select, DatePicker, Tag, Avatar, Dropdown, Space, message, List, Spin 
+  Table, Button, Modal, Form, Input, InputNumber, 
+  Select, DatePicker, Tag, Avatar, Space, message, List, Spin, App 
 } from 'antd';
 import {
-  DashboardOutlined,
-  TeamOutlined,
-  FileTextOutlined,
-  SettingOutlined,
   PlusOutlined,
   EditOutlined,
   DeleteOutlined,
   UserOutlined,
-  LogoutOutlined,
   EyeOutlined,
-  ThunderboltOutlined,
-  MenuFoldOutlined,
-  MenuUnfoldOutlined,
 } from '@ant-design/icons';
-import { useNavigate, useLocation } from 'react-router-dom';
 import { adminAPI } from '../../services/api';
-import { clearAuth, getUser } from '../../services/auth';
-import { useTheme } from '../../components/common/ThemeProvider';
+import AdminLayout from '../../components/common/AdminLayout';
 import dayjs from 'dayjs';
 
-const { Header, Sider, Content } = Layout;
 const { TextArea } = Input;
 
 export default function AdminJobs() {
-  const navigate = useNavigate();
-  const location = useLocation();
-  const user = getUser();
-  const { isDark, toggleTheme } = useTheme();
+  const { modal } = App.useApp();
   const [form] = Form.useForm();
-  
-  const [collapsed, setCollapsed] = useState(false);
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
@@ -98,18 +82,28 @@ export default function AdminJobs() {
   };
 
   const handleDelete = (id) => {
-    Modal.confirm({
+    if (!id) {
+      message.error('Unable to find job ID');
+      console.error('Job ID is missing');
+      return;
+    }
+
+    modal.confirm({
       title: 'Delete Job',
-      content: 'Are you sure you want to delete this job posting?',
+      content: 'Are you sure you want to delete this job posting? This will also delete all associated applications.',
       okText: 'Delete',
       okType: 'danger',
       onOk: async () => {
         try {
-          await adminAPI.deleteJob(id);
+          console.log('Deleting job with ID:', id);
+          const result = await adminAPI.deleteJob(id);
+          console.log('Delete job result:', result);
           message.success('Job deleted successfully');
           fetchJobs(pagination.current);
         } catch (error) {
+          console.error('Delete job error:', error);
           message.error(error.message || 'Failed to delete job');
+          throw error; // Re-throw to prevent modal from closing on error
         }
       },
     });
@@ -121,16 +115,29 @@ export default function AdminJobs() {
     setLoadingApplications(true);
     try {
       console.log('Fetching applications for job:', job._id);
-      const data = await adminAPI.getJobApplications(job._id);
+      let data = await adminAPI.getJobApplications(job._id);
       console.log('Applications data received:', data);
-      if (data.success) {
+      if (data.success && Array.isArray(data.applications) && data.applications.length > 0) {
         setApplications(data.applications || []);
-        if (data.applications && data.applications.length === 0) {
-          message.info('No applications found for this job');
-        }
       } else {
-        message.error(data.error || 'Failed to load applications');
-        setApplications([]);
+        // Fallback to recruiter endpoint in case admin route returns empty due to historical schema mismatch
+        console.log('Admin applications empty, trying recruiter fallback...');
+        try {
+          const alt = await jobAPI.getJobApplicationsRecruiter(job._id);
+          if (alt.success) {
+            setApplications(alt.applications || []);
+            if (!alt.applications || alt.applications.length === 0) {
+              message.info('No applications found for this job');
+            }
+          } else {
+            message.error(alt.error || 'Failed to load applications');
+            setApplications([]);
+          }
+        } catch (innerErr) {
+          console.error('Fallback applications fetch failed:', innerErr);
+          message.error('Failed to load applications');
+          setApplications([]);
+        }
       }
     } catch (error) {
       console.error('Error fetching applications:', error);
@@ -205,7 +212,7 @@ export default function AdminJobs() {
         };
         
         return (
-          <Tag color={colorMap[jobType] || 'default'}>
+          <Tag color={colorMap[jobType] || 'purple'} className="rounded-full px-3 py-1">
             {jobType.toUpperCase()}
           </Tag>
         );
@@ -280,97 +287,8 @@ export default function AdminJobs() {
     },
   ];
 
-  const menuItems = [
-    { key: '/admin/dashboard', icon: <DashboardOutlined />, label: 'Dashboard' },
-    { key: '/admin/students', icon: <TeamOutlined />, label: 'Students' },
-    { key: '/admin/jobs', icon: <FileTextOutlined />, label: 'Jobs' },
-    { key: '/admin/settings', icon: <SettingOutlined />, label: 'Settings' },
-  ];
-
-  const handleLogout = () => {
-    clearAuth();
-    navigate('/login');
-  };
-
-  const userMenu = {
-    items: [
-      { key: 'profile', label: 'Profile', icon: <UserOutlined /> },
-      { key: 'logout', label: 'Logout', icon: <LogoutOutlined />, danger: true, onClick: handleLogout },
-    ],
-  };
-
   return (
-    <Layout className="min-h-screen bg-gray-50 dark:bg-slate-900 transition-colors duration-200">
-      <Sider
-        collapsible
-        collapsed={collapsed}
-        onCollapse={setCollapsed}
-        className="bg-gradient-to-b from-purple-700 via-purple-800 to-indigo-900 dark:from-slate-800 dark:via-slate-900 dark:to-slate-900 shadow-2xl"
-        width={260}
-        trigger={null}
-      >
-        <div className="p-6 text-center border-b border-white/10">
-          <div className="flex items-center justify-center gap-3 mb-4">
-            <div className="w-10 h-10 bg-gradient-to-br from-purple-400 to-cyan-400 rounded-xl flex items-center justify-center shadow-lg">
-              <ThunderboltOutlined className="text-white text-xl" />
-            </div>
-            {!collapsed && (
-              <h1 className="text-white text-xl font-bold bg-gradient-to-r from-white to-purple-200 bg-clip-text text-transparent">
-                Internship Portal
-              </h1>
-            )}
-          </div>
-        </div>
-        <Menu
-          theme="dark"
-          mode="inline"
-          selectedKeys={[location.pathname]}
-          items={menuItems}
-          onClick={({ key }) => navigate(key)}
-          className="bg-transparent border-0 mt-4"
-          style={{ backgroundColor: 'transparent' }}
-        />
-      </Sider>
-
-      <Layout>
-        <Header className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl shadow-sm px-6 flex justify-between items-center sticky top-0 z-50 border-b border-gray-200/50 dark:border-slate-700/50">
-          <div className="flex items-center gap-4">
-            {collapsed ? (
-              <MenuUnfoldOutlined
-                className="text-xl cursor-pointer text-gray-700 dark:text-gray-300 hover:text-purple-600 dark:hover:text-purple-400 transition-colors"
-                onClick={() => setCollapsed(!collapsed)}
-              />
-            ) : (
-              <MenuFoldOutlined
-                className="text-xl cursor-pointer text-gray-700 dark:text-gray-300 hover:text-purple-600 dark:hover:text-purple-400 transition-colors"
-                onClick={() => setCollapsed(!collapsed)}
-              />
-            )}
-            <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100">Manage Jobs</h2>
-          </div>
-          <div className="flex items-center gap-4">
-            <button
-              onClick={toggleTheme}
-              className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors"
-              aria-label="Toggle theme"
-            >
-              {isDark ? '☀️' : '🌙'}
-            </button>
-            <Dropdown menu={userMenu} placement="bottomRight">
-              <div className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity">
-                <Avatar 
-                  icon={<UserOutlined />} 
-                  className="bg-gradient-to-br from-purple-500 to-indigo-500 shadow-md"
-                />
-                <span className="text-gray-700 dark:text-gray-300 font-medium">
-                  {user?.name || 'Admin'}
-                </span>
-              </div>
-            </Dropdown>
-          </div>
-        </Header>
-
-        <Content className="p-6 md:p-8 bg-gray-50 dark:bg-slate-900 transition-colors duration-200">
+    <AdminLayout>
           <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl rounded-2xl border border-gray-200/50 dark:border-slate-700/50 shadow-xl p-6 md:p-8">
             <div className="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
               <div>
@@ -386,7 +304,7 @@ export default function AdminJobs() {
                 icon={<PlusOutlined />}
                 onClick={handleCreate}
                 size="large"
-                className="bg-gradient-to-r from-purple-600 to-indigo-600 border-0 hover:from-purple-700 hover:to-indigo-700 shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105"
+                className="bg-purple-600/80 dark:bg-purple-500/80 backdrop-blur-md border-0 hover:bg-purple-700/80 dark:hover:bg-purple-600/80 shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105 text-white"
                 style={{
                   borderRadius: '12px',
                   padding: '0 24px',
@@ -416,8 +334,6 @@ export default function AdminJobs() {
               />
             </div>
           </div>
-        </Content>
-      </Layout>
 
       {/* Create/Edit Modal */}
       <Modal
@@ -538,7 +454,7 @@ export default function AdminJobs() {
       <Modal
         title={
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-indigo-500 rounded-xl flex items-center justify-center">
+            <div className="w-10 h-10 bg-purple-500/30 backdrop-blur-md rounded-xl flex items-center justify-center border border-white/20">
               <EyeOutlined className="text-white text-lg" />
             </div>
             <div>
@@ -592,7 +508,7 @@ export default function AdminJobs() {
                       <Avatar 
                         size={56}
                         icon={<UserOutlined />}
-                        className="bg-gradient-to-br from-purple-500 to-indigo-500 shadow-md"
+                        className="bg-purple-500/30 backdrop-blur-md shadow-md border border-purple-400/30"
                       />
                     }
                     title={
@@ -627,7 +543,7 @@ export default function AdminJobs() {
                         {application.stage && (
                           <div className="flex items-center gap-2">
                             <span className="font-medium">🎯 Stage:</span>
-                            <Tag className="rounded-full">{application.stage}</Tag>
+                            <Tag color="purple" className="rounded-full px-3 py-1">{application.stage}</Tag>
                           </div>
                         )}
                       </div>
@@ -639,6 +555,6 @@ export default function AdminJobs() {
           </div>
         )}
       </Modal>
-    </Layout>
+    </AdminLayout>
   );
 }

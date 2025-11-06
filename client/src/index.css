@@ -22,6 +22,12 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   transition: background-color var(--transition-normal), color var(--transition-normal);
+  background-color: #f8fafc; /* Light page background */
+}
+
+/* Force full-page background when dark mode is active */
+.dark body {
+  background-color: #0f172a; /* slate-900 */
 }
 
 h1, h2, h3, h4, h5, h6 {
@@ -124,17 +130,17 @@ html {
 }
 
 /* Password input styling */
-.ant-input-password input {
+.dark .ant-input-password input {
   background-color: #121212 !important;
   color: #ffffff !important;
 }
 
-.ant-input-affix-wrapper {
+.dark .ant-input-affix-wrapper {
   background-color: #121212 !important;
   border: 1px solid #262626 !important;
 }
 
-.ant-input-affix-wrapper input {
+.dark .ant-input-affix-wrapper input {
   background-color: transparent !important;
   color: #ffffff !important;
 }
@@ -206,7 +212,6 @@ html {
 /* Student Jobs Page Specific Styles */
 .animate-fade-in {
   animation: fade-in 0.5s ease-out forwards;
-  opacity: 0;
 }
 
 @keyframes fade-in {
@@ -307,6 +312,54 @@ html {
   background-color: rgba(124, 58, 237, 0.05) !important;
 }
 
+/* Dark Mode Tag Styles */
+.dark .ant-tag {
+  color: #F1F5F9 !important;
+  border-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+/* Default/Gray tags - make them visible in dark mode */
+.dark .ant-tag:not(.ant-tag-green):not(.ant-tag-blue):not(.ant-tag-orange):not(.ant-tag-purple):not(.ant-tag-red):not(.ant-tag-cyan):not(.ant-tag-pink) {
+  background-color: #475569 !important;
+  border-color: #64748B !important;
+  color: #F1F5F9 !important;
+}
+
+/* Green tags */
+.dark .ant-tag-green {
+  background-color: rgba(16, 185, 129, 0.2) !important;
+  border-color: rgba(16, 185, 129, 0.4) !important;
+  color: #6EE7B7 !important;
+}
+
+/* Blue tags */
+.dark .ant-tag-blue {
+  background-color: rgba(59, 130, 246, 0.2) !important;
+  border-color: rgba(59, 130, 246, 0.4) !important;
+  color: #93C5FD !important;
+}
+
+/* Orange tags */
+.dark .ant-tag-orange {
+  background-color: rgba(249, 115, 22, 0.2) !important;
+  border-color: rgba(249, 115, 22, 0.4) !important;
+  color: #FDB88A !important;
+}
+
+/* Purple tags */
+.dark .ant-tag-purple {
+  background-color: rgba(147, 51, 234, 0.2) !important;
+  border-color: rgba(147, 51, 234, 0.4) !important;
+  color: #C4B5FD !important;
+}
+
+/* Red tags */
+.dark .ant-tag-red {
+  background-color: rgba(239, 68, 68, 0.2) !important;
+  border-color: rgba(239, 68, 68, 0.4) !important;
+  color: #FCA5A5 !important;
+}
+
 /* Dark Mode Table */
 .dark .modern-table .ant-table-thead > tr > th {
   background: rgba(124, 58, 237, 0.15) !important;
@@ -342,17 +395,51 @@ html {
   color: white !important;
 }
 
+/* Dark Mode Descriptions */
+.dark .ant-descriptions-item-label,
+.dark .student-details-descriptions .ant-descriptions-item-label {
+  color: #94A3B8 !important;
+  font-weight: 500 !important;
+}
+
+.dark .ant-descriptions-item-content,
+.dark .student-details-descriptions .ant-descriptions-item-content {
+  color: #E2E8F0 !important;
+}
+
+.dark .ant-descriptions-bordered .ant-descriptions-item-label {
+  background-color: #1E293B !important;
+  border-color: #334155 !important;
+  color: #94A3B8 !important;
+}
+
+.dark .ant-descriptions-bordered .ant-descriptions-item-content {
+  background-color: #0F172A !important;
+  border-color: #334155 !important;
+  color: #E2E8F0 !important;
+}
+
 /* Modern Modal */
 .modern-modal .ant-modal-content {
   border-radius: 24px !important;
   overflow: hidden !important;
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25) !important;
+  background-color: #ffffff !important;
+}
+
+.dark .modern-modal .ant-modal-content {
+  background-color: #1E293B !important;
 }
 
 .modern-modal .ant-modal-header {
-  background: linear-gradient(135deg, rgba(124, 58, 237, 0.1) 0%, rgba(20, 184, 166, 0.1) 100%) !important;
+  background: rgba(124, 58, 237, 0.1) !important;
   border-bottom: 1px solid #E5E7EB !important;
   padding: 24px !important;
+}
+
+.dark .modern-modal .ant-modal-header {
+  background: rgba(124, 58, 237, 0.15) !important;
+  border-bottom: 1px solid #334155 !important;
 }
 
 .modern-modal .ant-modal-body {
@@ -364,6 +451,40 @@ html {
   background: rgba(124, 58, 237, 0.15) !important;
   border-bottom: 1px solid #334155 !important;
 }
+
+/* Global dark mode text/icon fixes for Ant Design */
+.dark .ant-typography,
+.dark .ant-table,
+.dark .ant-table-cell,
+.dark .ant-modal-content,
+.dark .ant-modal-title,
+.dark .ant-dropdown-menu,
+.dark .ant-list-item,
+.dark .ant-form-item-label > label,
+.dark .ant-input,
+.dark .ant-select-selector,
+.dark .ant-pagination,
+.dark .ant-tag {
+  color: #E2E8F0 !important;
+}
+
+.dark .ant-input,
+.dark .ant-input-affix-wrapper,
+.dark .ant-select-selector,
+.dark .ant-picker,
+.dark .ant-table,
+.dark .ant-modal-content,
+.dark .ant-dropdown-menu {
+  background-color: rgba(30, 41, 59, 0.9) !important; /* slate-800 */
+  border-color: #334155 !important; /* slate-700 */
+}
+
+.dark .ant-btn-text,
+.dark .ant-btn-link {
+  color: #93C5FD !important; /* light blue for contrast */
+}
+
+.dark .anticon { color: #E2E8F0 !important; }
 
 /* Tag Improvements */
 .ant-tag {
@@ -437,4 +558,46 @@ html {
 
 .delay-2000 {
   animation-delay: 2s;
+}
+
+/* Dark mode global readability fixes */
+.dark body {
+  color: #E5E7EB;
+  background-color: #0F172A;
+}
+
+.dark .ant-typography, 
+.dark .ant-modal, 
+.dark .ant-card, 
+.dark .ant-dropdown-menu,
+.dark .ant-form-item-label > label {
+  color: #E5E7EB !important;
+}
+
+.dark .ant-modal-header .ant-modal-title,
+.dark .ant-modal-content,
+.dark .ant-dropdown-menu-item,
+.dark .ant-table-cell,
+.dark .ant-input,
+.dark .ant-select-selector,
+.dark .ant-btn {
+  color: #E5E7EB !important;
+}
+
+/* Ensure icons inherit color in dark mode */
+.dark svg,
+.dark .anticon {
+  color: #E5E7EB !important;
+  fill: currentColor !important;
+}
+
+/* Links and text buttons in dark mode */
+.dark a,
+.dark .ant-btn-link {
+  color: #93C5FD !important;
+}
+
+/* Confirm modal danger button contrast */
+.dark .ant-modal-confirm .ant-btn-dangerous {
+  color: #fff !important;
 }
